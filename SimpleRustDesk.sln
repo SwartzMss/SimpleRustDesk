@@ -5,6 +5,10 @@ VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RelayServer", "RelayServer\RelayServer.vcxproj", "{5AAF4B54-354F-47D4-BC9D-5A7A413496AF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IDServer", "IDServer\IDServer.vcxproj", "{1DEA01B5-808F-441B-961A-584B106BF5B5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RendezvousProto", "RendezvousProto\RendezvousProto.vcxproj", "{9B487F51-9A98-4FE9-A9A1-B67C98F91311}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64
@@ -12,6 +16,10 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5AAF4B54-354F-47D4-BC9D-5A7A413496AF}.Release|x64.ActiveCfg = Release|x64
 		{5AAF4B54-354F-47D4-BC9D-5A7A413496AF}.Release|x64.Build.0 = Release|x64
+		{1DEA01B5-808F-441B-961A-584B106BF5B5}.Release|x64.ActiveCfg = Release|x64
+		{1DEA01B5-808F-441B-961A-584B106BF5B5}.Release|x64.Build.0 = Release|x64
+		{9B487F51-9A98-4FE9-A9A1-B67C98F91311}.Release|x64.ActiveCfg = Release|x64
+		{9B487F51-9A98-4FE9-A9A1-B67C98F91311}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
