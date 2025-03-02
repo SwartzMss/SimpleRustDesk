@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34316.72
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RelayServer", "RelayServer\RelayServer.vcxproj", "{5AAF4B54-354F-47D4-BC9D-5A7A413496AF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5AAF4B54-354F-47D4-BC9D-5A7A413496AF}.Release|x64.ActiveCfg = Release|x64
+		{5AAF4B54-354F-47D4-BC9D-5A7A413496AF}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3DC43BEE-D356-4D51-BE2F-3888D57C1BC7}
+	EndGlobalSection
+EndGlobal
