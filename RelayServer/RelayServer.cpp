@@ -97,12 +97,12 @@ void RelayServer::tryPairing(const QString& uuid, std::shared_ptr<ConnectionHand
 		// 建立双向数据转发
 		handler->pairWith(peer);
 		peer->pairWith(handler);
-		// qDebug() << "成功匹配 UUID:" << uuid;
+		LogWidget::instance()->addLog("UUID matched", LogWidget::Info);
 	}
 	else {
 		mPeers.insert(uuid, handler);
 		// 启动一个定时器，若超时未配对则断开连接
 		handler->startTimeout(30000);  // 30秒超时
-		//qDebug() << "等待匹配 UUID:" << uuid;
+		LogWidget::instance()->addLog("waiting for UUID ", LogWidget::Info);
 	}
 }

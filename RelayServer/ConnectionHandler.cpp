@@ -76,18 +76,34 @@ QTcpSocket* ConnectionHandler::socket()
 	return &m_socket;
 }
 
+// 在发送端 先写入消息的长度（例如用 QDataStream 写入 4 字节的整数，使用网络字节序），再写入实际的 protobuf 消息数据
 void ConnectionHandler::onReadyRead()
 {
-	QByteArray data = m_socket.readAll();
-	m_buffer.append(data);
-	// 假设协议以换行符作为消息结束标志
-	while (m_buffer.contains('\n')) {
-		int index = m_buffer.indexOf('\n');
-		QByteArray line = m_buffer.left(index).trimmed();
-		m_buffer.remove(0, index + 1);
-		processData(line);
+	m_buffer.append(m_socket.readAll());
+	// 不断处理缓冲区内的数据
+	while (true) {
+		// 至少需要 4 字节的长度信息
+		if (m_buffer.size() < static_cast<int>(sizeof(quint32))) {
+			return; // 数据不足，等待后续数据
+		}
+		// 使用 QDataStream 读取前 4 字节长度（网络字节序）
+		QDataStream ds(m_buffer);
+		ds.setByteOrder(QDataStream::BigEndian);
+		quint32 msgLength = 0;
+		ds >> msgLength;
+		// 检查是否已接收到完整消息
+		if (m_buffer.size() < static_cast<int>(sizeof(quint32)) + msgLength) {
+			return; // 消息不完整，等待更多数据
+		}
+		// 提取消息数据
+		QByteArray messageData = m_buffer.mid(sizeof(quint32), msgLength);
+		// 移除已处理的数据
+		m_buffer.remove(0, sizeof(quint32) + msgLength);
+		// 处理单个消息
+		processData(messageData);
 	}
 }
+
 
 void ConnectionHandler::processData(const QByteArray& data)
 {
