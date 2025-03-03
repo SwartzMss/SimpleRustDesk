@@ -13,7 +13,6 @@
 #include <memory>
 #include <type_traits>
 
-#include "absl/base/attributes.h"
 #include "google/protobuf/generated_enum_util.h"
 #include "google/protobuf/descriptor.h"
 
@@ -97,6 +96,7 @@ class MutableRepeatedFieldRef<
   }
   void Add(const T& value) const { accessor_->template Add<T>(data_, value); }
   void RemoveLast() const { accessor_->RemoveLast(data_); }
+  void Reserve(int size) const { accessor_->Reserve(data_, size); }
   void SwapElements(int index1, int index2) const {
     accessor_->SwapElements(data_, index1, index2);
   }
@@ -215,6 +215,7 @@ class MutableRepeatedFieldRef<
   }
   void Add(const T& value) const { accessor_->Add(data_, &value); }
   void RemoveLast() const { accessor_->RemoveLast(data_); }
+  void Reserve(int size) const { accessor_->Reserve(data_, size); }
   void SwapElements(int index1, int index2) const {
     accessor_->SwapElements(data_, index1, index2);
   }
@@ -302,6 +303,7 @@ class PROTOBUF_EXPORT RepeatedFieldAccessor {
   virtual void Set(Field* data, int index, const Value* value) const = 0;
   virtual void Add(Field* data, const Value* value) const = 0;
   virtual void RemoveLast(Field* data) const = 0;
+  virtual void Reserve(Field* data, int size) const = 0;
   virtual void SwapElements(Field* data, int index1, int index2) const = 0;
   virtual void Swap(Field* data, const RepeatedFieldAccessor* other_mutator,
                     Field* other_data) const = 0;

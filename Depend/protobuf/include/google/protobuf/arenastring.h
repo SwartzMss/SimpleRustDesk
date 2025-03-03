@@ -35,6 +35,10 @@ class EpsCopyInputStream;
 
 class SwapFieldHelper;
 
+// Declared in message_lite.h
+PROTOBUF_EXPORT extern ExplicitlyConstructedArenaString
+    fixed_address_empty_string;
+
 // Lazy string instance to support string fields with non-empty default.
 // These are initialized on the first call to .get().
 class PROTOBUF_EXPORT LazyString {
@@ -58,7 +62,7 @@ class PROTOBUF_EXPORT LazyString {
   const std::string& get() const {
     // This check generates less code than a call-once invocation.
     auto* res = inited_.load(std::memory_order_acquire);
-    if (ABSL_PREDICT_FALSE(res == nullptr)) return Init();
+    if (PROTOBUF_PREDICT_FALSE(res == nullptr)) return Init();
     return *res;
   }
 
@@ -103,8 +107,8 @@ class PROTOBUF_EXPORT TaggedStringPtr {
   };
 
   TaggedStringPtr() = default;
-  explicit constexpr TaggedStringPtr(const GlobalEmptyString* ptr)
-      : ptr_(const_cast<void*>(static_cast<const void*>(ptr))) {}
+  explicit constexpr TaggedStringPtr(ExplicitlyConstructedArenaString* ptr)
+      : ptr_(ptr) {}
 
   // Sets the value to `p`, tagging the value as being a 'default' value.
   // See documentation for kDefault for more info.
@@ -180,9 +184,6 @@ class PROTOBUF_EXPORT TaggedStringPtr {
 
  private:
   static inline void assert_aligned(const void* p) {
-    static_assert(kMask <= alignof(void*), "Pointer underaligned for bit mask");
-    static_assert(kMask <= alignof(std::string),
-                  "std::string underaligned for bit mask");
     ABSL_DCHECK_EQ(reinterpret_cast<uintptr_t>(p) & kMask, 0UL);
   }
 
@@ -227,7 +228,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   ArenaStringPtr() = default;
 
   // Constexpr constructor, initializes to a constexpr, empty string value.
-  constexpr ArenaStringPtr(const GlobalEmptyString* default_value,
+  constexpr ArenaStringPtr(ExplicitlyConstructedArenaString* default_value,
                            ConstantInitialized)
       : tagged_ptr_(default_value) {}
 
@@ -236,7 +237,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   // hardening is enabled, in which case this instance will hold a forced copy.
   explicit ArenaStringPtr(Arena* arena)
       : tagged_ptr_(&fixed_address_empty_string) {
-    if (DebugHardenForceCopyDefaultString()) {
+    if (DebugHardenStringValues()) {
       Set(absl::string_view(""), arena);
     }
   }
@@ -247,7 +248,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   // forced copy of the value in `default_value`.
   ArenaStringPtr(Arena* arena, const LazyString& default_value)
       : tagged_ptr_(&fixed_address_empty_string) {
-    if (DebugHardenForceCopyDefaultString()) {
+    if (DebugHardenStringValues()) {
       Set(absl::string_view(default_value.get()), arena);
     }
   }
@@ -336,7 +337,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   // Returns a pointer to the stored contents for this instance.
   // This method is for internal debugging and tracking purposes only.
   PROTOBUF_NDEBUG_INLINE const std::string* UnsafeGetPointer() const
-      ABSL_ATTRIBUTE_RETURNS_NONNULL {
+      PROTOBUF_RETURNS_NONNULL {
     return tagged_ptr_.Get();
   }
 
@@ -344,7 +345,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   // Own()'d by any arena. If the field is not set, this returns nullptr. The
   // caller retains ownership. Clears this field back to the default state.
   // Used to implement release_<field>() methods on generated classes.
-  [[nodiscard]] std::string* Release();
+  PROTOBUF_NODISCARD std::string* Release();
 
   // Takes a std::string that is heap-allocated, and takes ownership. The
   // std::string's destructor is registered with the arena. Used to implement
@@ -372,9 +373,9 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   // Swaps internal pointers. Arena-safety semantics: this is guarded by the
   // logic in Swap()/UnsafeArenaSwap() at the message level, so this method is
   // 'unsafe' if called directly.
-  PROTOBUF_NDEBUG_INLINE static void InternalSwap(ArenaStringPtr* rhs,
-                                                  ArenaStringPtr* lhs,
-                                                  Arena* arena);
+  inline PROTOBUF_NDEBUG_INLINE static void InternalSwap(ArenaStringPtr* rhs,
+                                                         ArenaStringPtr* lhs,
+                                                         Arena* arena);
 
   // Internal setter used only at parse time to directly set a donated string
   // value.
@@ -382,7 +383,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
   // Generated code only! An optimization, in certain cases the generated
   // code is certain we can obtain a std::string with no default checks and
   // tag tests.
-  std::string* UnsafeMutablePointer() ABSL_ATTRIBUTE_RETURNS_NONNULL;
+  std::string* UnsafeMutablePointer() PROTOBUF_RETURNS_NONNULL;
 
   // Returns true if this instances holds an immutable default value.
   inline bool IsDefault() const { return tagged_ptr_.IsDefault(); }
@@ -405,8 +406,8 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
 
   // Swaps tagged pointer without debug hardening. This is to allow python
   // protobuf to maintain pointer stability even in DEBUG builds.
-  PROTOBUF_NDEBUG_INLINE static void UnsafeShallowSwap(ArenaStringPtr* rhs,
-                                                       ArenaStringPtr* lhs) {
+  inline PROTOBUF_NDEBUG_INLINE static void UnsafeShallowSwap(
+      ArenaStringPtr* rhs, ArenaStringPtr* lhs) {
     std::swap(lhs->tagged_ptr_, rhs->tagged_ptr_);
   }
 
@@ -424,7 +425,7 @@ struct PROTOBUF_EXPORT ArenaStringPtr {
 };
 
 inline TaggedStringPtr TaggedStringPtr::Copy(Arena* arena) const {
-  if (DebugHardenForceCopyDefaultString()) {
+  if (DebugHardenStringValues()) {
     // Harden by forcing an allocated string value.
     return IsNull() ? *this : ForceCopy(arena);
   }
@@ -433,7 +434,7 @@ inline TaggedStringPtr TaggedStringPtr::Copy(Arena* arena) const {
 
 inline TaggedStringPtr TaggedStringPtr::Copy(
     Arena* arena, const LazyString& default_value) const {
-  if (DebugHardenForceCopyDefaultString()) {
+  if (DebugHardenStringValues()) {
     // Harden by forcing an allocated string value.
     TaggedStringPtr hardened(*this);
     if (IsDefault()) {
@@ -494,33 +495,31 @@ inline void ArenaStringPtr::SetBytes(const void* p, size_t n, Arena* arena) {
   Set(absl::string_view{static_cast<const char*>(p), n}, arena);
 }
 
-PROTOBUF_NDEBUG_INLINE void ArenaStringPtr::InternalSwap(ArenaStringPtr* rhs,
-                                                         ArenaStringPtr* lhs,
-                                                         Arena* arena) {
+inline PROTOBUF_NDEBUG_INLINE void ArenaStringPtr::InternalSwap(
+    ArenaStringPtr* rhs, ArenaStringPtr* lhs, Arena* arena) {
   // Silence unused variable warnings in release buildls.
   (void)arena;
   std::swap(lhs->tagged_ptr_, rhs->tagged_ptr_);
-  if (internal::DebugHardenForceCopyInSwap()) {
-    for (auto* p : {lhs, rhs}) {
-      if (p->IsDefault()) continue;
-      std::string* old_value = p->tagged_ptr_.Get();
-      std::string* new_value =
-          p->IsFixedSizeArena()
-              ? Arena::Create<std::string>(arena, *old_value)
-              : Arena::Create<std::string>(arena, std::move(*old_value));
-      if (arena == nullptr) {
-        delete old_value;
-        p->tagged_ptr_.SetAllocated(new_value);
-      } else {
-        p->tagged_ptr_.SetMutableArena(new_value);
-      }
+#ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+  for (auto* p : {lhs, rhs}) {
+    if (p->IsDefault()) continue;
+    std::string* old_value = p->tagged_ptr_.Get();
+    std::string* new_value =
+        p->IsFixedSizeArena()
+            ? Arena::Create<std::string>(arena, *old_value)
+            : Arena::Create<std::string>(arena, std::move(*old_value));
+    if (arena == nullptr) {
+      delete old_value;
+      p->tagged_ptr_.SetAllocated(new_value);
+    } else {
+      p->tagged_ptr_.SetMutableArena(new_value);
     }
   }
+#endif  // PROTOBUF_FORCE_COPY_IN_SWAP
 }
 
 inline void ArenaStringPtr::ClearNonDefaultToEmpty() {
   // Unconditionally mask away the tag.
-  ABSL_DCHECK(!tagged_ptr_.IsDefault());
   tagged_ptr_.Get()->clear();
 }
 

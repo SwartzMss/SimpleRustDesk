@@ -29,12 +29,6 @@ enum class EnforceOptimizeMode {
   kLiteRuntime,
 };
 
-enum class BoundsCheckMode {
-  kNoEnforcement,       // No enforcement.
-  kReturnDefaultValue,  // Return default value if out of bounds.
-  kAbort,               // TrapOrAbort if out of bounds.
-};
-
 struct FieldListenerOptions {
   bool inject_field_listener_events = false;
   absl::flat_hash_set<std::string> forbidden_field_listener_events;
@@ -51,19 +45,15 @@ struct Options {
   FieldListenerOptions field_listener_options;
   EnforceOptimizeMode enforce_mode = EnforceOptimizeMode::kNoEnforcement;
   int num_cc_files = 0;
-  BoundsCheckMode bounds_check_mode = BoundsCheckMode::kNoEnforcement;
+  bool safe_boundary_check = false;
   bool proto_h = false;
   bool transitive_pb_h = true;
   bool annotate_headers = false;
   bool lite_implicit_weak_fields = false;
-  bool descriptor_implicit_weak_messages = false;
   bool bootstrap = false;
   bool opensource_runtime = false;
   bool annotate_accessor = false;
   bool force_split = false;
-  // TODO: clean this up after the change is rolled out for 2
-  // weeks.
-  bool profile_driven_cluster_aux_subtable = true;
 #ifdef PROTOBUF_STABLE_EXPERIMENTS
   bool force_eagerly_verified_lazy = true;
   bool force_inline_string = true;

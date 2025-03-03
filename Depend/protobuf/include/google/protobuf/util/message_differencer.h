@@ -25,14 +25,13 @@
 #include <string>
 #include <vector>
 
-#include "absl/base/macros.h"
+#include "google/protobuf/stubs/common.h"
 #include "absl/container/fixed_array.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/absl_check.h"
 #include "google/protobuf/descriptor.h"  // FieldDescriptor
 #include "google/protobuf/message.h"     // Message
-#include "google/protobuf/text_format.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "google/protobuf/util/field_comparator.h"
 
@@ -582,13 +581,6 @@ class PROTOBUF_EXPORT MessageDifferencer {
   // in the comparison.
   void set_force_compare_no_presence(bool value);
 
-  // If set, the fields in message1 that equal the fields passed here will be
-  // treated as required for comparison, even if they are absent.
-  void set_require_no_presence_fields(
-      const google::protobuf::TextFormat::Parser::UnsetFieldsMetadata& fields) {
-    require_no_presence_fields_ = fields;
-  }
-
   // DEPRECATED. Pass a DefaultFieldComparator instance instead.
   // Sets the type of comparison (as defined in the FloatComparison enumeration
   // above) that is used by this differencer when comparing float (and double)
@@ -739,6 +731,7 @@ class PROTOBUF_EXPORT MessageDifferencer {
     bool report_modified_aggregates_;
     const Message* message1_;
     const Message* message2_;
+    MessageDifferencer::UnpackAnyField unpack_any_field_;
   };
 
  private:
@@ -775,7 +768,6 @@ class PROTOBUF_EXPORT MessageDifferencer {
   // list.  Fields only present in one of the lists will only appear in the
   // combined list if the corresponding fields_scope option is set to FULL.
   std::vector<const FieldDescriptor*> CombineFields(
-      const Message& message1,
       const std::vector<const FieldDescriptor*>& fields1, Scope fields1_scope,
       const std::vector<const FieldDescriptor*>& fields2, Scope fields2_scope);
 
@@ -927,21 +919,11 @@ class PROTOBUF_EXPORT MessageDifferencer {
       const FieldDescriptor* field,
       const RepeatedFieldComparison& new_comparison);
 
-  // Whether we should still compare the field despite its absence in message1.
-  bool ShouldCompareNoPresence(const Message& message1,
-                               const Reflection& reflection1,
-                               const FieldDescriptor* field2) const;
-
-  // We move this code out of line to reduce stack cost of the caller.
-  // The map lookups and string copies are costly in stack space.
-  PROTOBUF_NOINLINE void ForceCompareField(const FieldDescriptor* field);
-
   Reporter* reporter_;
   DefaultFieldComparator default_field_comparator_;
   MessageFieldComparison message_field_comparison_;
   Scope scope_;
   absl::flat_hash_set<const FieldDescriptor*> force_compare_no_presence_fields_;
-  google::protobuf::TextFormat::Parser::UnsetFieldsMetadata require_no_presence_fields_;
   absl::flat_hash_set<std::string> force_compare_failure_triggering_fields_;
   RepeatedFieldComparison repeated_field_comparison_;
 

@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QByteArray>
 #include <memory>
+#include "rendezvous.pb.h"
 
 class ConnectionHandler : public QObject
 {

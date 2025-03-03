@@ -12,9 +12,6 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_JAVA_DOC_COMMENT_H__
 #define GOOGLE_PROTOBUF_COMPILER_JAVA_DOC_COMMENT_H__
 
-#include <stdbool.h>
-
-#include "absl/strings/string_view.h"
 #include "google/protobuf/compiler/java/options.h"
 #include "google/protobuf/descriptor.h"
 
@@ -49,34 +46,38 @@ enum FieldAccessorType {
 };
 
 void WriteMessageDocComment(io::Printer* printer, const Descriptor* message,
-                            Options options, bool kdoc = false);
+                            const bool kdoc = false);
 void WriteFieldDocComment(io::Printer* printer, const FieldDescriptor* field,
-                          Options options, bool kdoc = false);
+                          Options options, const bool kdoc = false);
 void WriteFieldAccessorDocComment(io::Printer* printer,
                                   const FieldDescriptor* field,
-                                  FieldAccessorType type, Options options,
-                                  bool builder = false, bool kdoc = false,
-                                  bool is_private = false);
-void WriteFieldEnumValueAccessorDocComment(
-    io::Printer* printer, const FieldDescriptor* field, FieldAccessorType type,
-    Options options, bool builder = false, bool kdoc = false);
-void WriteFieldStringBytesAccessorDocComment(
-    io::Printer* printer, const FieldDescriptor* field, FieldAccessorType type,
-    Options options, bool builder = false, bool kdoc = false,
-    bool is_private = false);
+                                  const FieldAccessorType type, Options options,
+                                  const bool builder = false,
+                                  const bool kdoc = false);
+void WriteFieldEnumValueAccessorDocComment(io::Printer* printer,
+                                           const FieldDescriptor* field,
+                                           const FieldAccessorType type,
+                                           Options options,
+                                           const bool builder = false,
+                                           const bool kdoc = false);
+void WriteFieldStringBytesAccessorDocComment(io::Printer* printer,
+                                             const FieldDescriptor* field,
+                                             const FieldAccessorType type,
+                                             Options options,
+                                             const bool builder = false,
+                                             const bool kdoc = false);
 void WriteEnumDocComment(io::Printer* printer, const EnumDescriptor* enum_,
-                         Options options, bool kdoc = false);
+                         const bool kdoc = false);
 void WriteEnumValueDocComment(io::Printer* printer,
-                              const EnumValueDescriptor* value,
-                              Options options);
+                              const EnumValueDescriptor* value);
 void WriteServiceDocComment(io::Printer* printer,
-                            const ServiceDescriptor* service, Options options);
-void WriteMethodDocComment(io::Printer* printer, const MethodDescriptor* method,
-                           Options options);
+                            const ServiceDescriptor* service);
+void WriteMethodDocComment(io::Printer* printer,
+                           const MethodDescriptor* method);
 
 // Exposed for testing only.
 // Also called by proto1-Java code generator.
-PROTOC_EXPORT std::string EscapeJavadoc(absl::string_view input);
+PROTOC_EXPORT std::string EscapeJavadoc(const std::string& input);
 
 }  // namespace java
 }  // namespace compiler

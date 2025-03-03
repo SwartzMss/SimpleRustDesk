@@ -8,20 +8,14 @@
 #ifndef GOOGLE_PROTOBUF_REFLECTION_INTERNAL_H__
 #define GOOGLE_PROTOBUF_REFLECTION_INTERNAL_H__
 
-#include <cstdint>
-#include <string>
-
-#include "absl/log/absl_check.h"
 #include "absl/strings/cord.h"
 #include "google/protobuf/map_field.h"
 #include "google/protobuf/reflection.h"
 #include "google/protobuf/repeated_field.h"
-#include "google/protobuf/repeated_ptr_field.h"
 
 namespace google {
 namespace protobuf {
 namespace internal {
-
 // A base class for RepeatedFieldAccessor implementations that can support
 // random-access efficiently. All iterator methods delegates the work to
 // corresponding random-access methods.
@@ -70,7 +64,7 @@ class RandomAccessRepeatedFieldAccessor : public RepeatedFieldAccessor {
 template <typename T>
 class RepeatedFieldWrapper : public RandomAccessRepeatedFieldAccessor {
  public:
-  RepeatedFieldWrapper() = default;
+  RepeatedFieldWrapper() {}
   bool IsEmpty(const Field* data) const override {
     return GetRepeatedField(data)->empty();
   }
@@ -93,21 +87,20 @@ class RepeatedFieldWrapper : public RandomAccessRepeatedFieldAccessor {
   void RemoveLast(Field* data) const override {
     MutableRepeatedField(data)->RemoveLast();
   }
+  void Reserve(Field* data, int size) const override {
+    MutableRepeatedField(data)->Reserve(size);
+  }
   void SwapElements(Field* data, int index1, int index2) const override {
     MutableRepeatedField(data)->SwapElements(index1, index2);
   }
 
  protected:
-  // Type synonyms that subclasses can use.
-  using Type = T;
-  using RepeatedFieldType = RepeatedField<T>;
-
   ~RepeatedFieldWrapper() = default;
-
-  virtual const RepeatedFieldType* GetRepeatedField(const Field* data) const {
+  typedef RepeatedField<T> RepeatedFieldType;
+  static const RepeatedFieldType* GetRepeatedField(const Field* data) {
     return reinterpret_cast<const RepeatedFieldType*>(data);
   }
-  virtual RepeatedFieldType* MutableRepeatedField(Field* data) const {
+  static RepeatedFieldType* MutableRepeatedField(Field* data) {
     return reinterpret_cast<RepeatedFieldType*>(data);
   }
 
@@ -153,21 +146,20 @@ class RepeatedPtrFieldWrapper : public RandomAccessRepeatedFieldAccessor {
   void RemoveLast(Field* data) const override {
     MutableRepeatedField(data)->RemoveLast();
   }
+  void Reserve(Field* data, int size) const override {
+    MutableRepeatedField(data)->Reserve(size);
+  }
   void SwapElements(Field* data, int index1, int index2) const override {
     MutableRepeatedField(data)->SwapElements(index1, index2);
   }
 
  protected:
-  // Typedefs that subclasses can use.
-  using Type = T;
-  using RepeatedFieldType = RepeatedPtrField<T>;
-
   ~RepeatedPtrFieldWrapper() = default;
-
-  virtual const RepeatedFieldType* GetRepeatedField(const Field* data) const {
+  typedef RepeatedPtrField<T> RepeatedFieldType;
+  static const RepeatedFieldType* GetRepeatedField(const Field* data) {
     return reinterpret_cast<const RepeatedFieldType*>(data);
   }
-  virtual RepeatedFieldType* MutableRepeatedField(Field* data) const {
+  static RepeatedFieldType* MutableRepeatedField(Field* data) {
     return reinterpret_cast<RepeatedFieldType*>(data);
   }
 
@@ -190,16 +182,83 @@ class RepeatedPtrFieldWrapper : public RandomAccessRepeatedFieldAccessor {
                                     Value* scratch_space) const = 0;
 };
 
+// An implementation of RandomAccessRepeatedFieldAccessor that manipulates
+// MapFieldBase.
+class MapFieldAccessor final : public RandomAccessRepeatedFieldAccessor {
+ public:
+  MapFieldAccessor() {}
+  virtual ~MapFieldAccessor() {}
+  bool IsEmpty(const Field* data) const override {
+    return GetRepeatedField(data)->empty();
+  }
+  int Size(const Field* data) const override {
+    return GetRepeatedField(data)->size();
+  }
+  const Value* Get(const Field* data, int index,
+                   Value* scratch_space) const override {
+    return ConvertFromEntry(GetRepeatedField(data)->Get(index), scratch_space);
+  }
+  void Clear(Field* data) const override {
+    MutableRepeatedField(data)->Clear();
+  }
+  void Set(Field* data, int index, const Value* value) const override {
+    ConvertToEntry(value, MutableRepeatedField(data)->Mutable(index));
+  }
+  void Add(Field* data, const Value* value) const override {
+    Message* allocated = New(value);
+    ConvertToEntry(value, allocated);
+    MutableRepeatedField(data)->AddAllocated(allocated);
+  }
+  void RemoveLast(Field* data) const override {
+    MutableRepeatedField(data)->RemoveLast();
+  }
+  void Reserve(Field* data, int size) const override {
+    MutableRepeatedField(data)->Reserve(size);
+  }
+  void SwapElements(Field* data, int index1, int index2) const override {
+    MutableRepeatedField(data)->SwapElements(index1, index2);
+  }
+  void Swap(Field* data, const internal::RepeatedFieldAccessor* other_mutator,
+            Field* other_data) const override {
+    ABSL_CHECK(this == other_mutator);
+    MutableRepeatedField(data)->Swap(MutableRepeatedField(other_data));
+  }
+
+ protected:
+  typedef RepeatedPtrField<Message> RepeatedFieldType;
+  static const RepeatedFieldType* GetRepeatedField(const Field* data) {
+    return reinterpret_cast<const RepeatedFieldType*>(
+        (&reinterpret_cast<const MapFieldBase*>(data)->GetRepeatedField()));
+  }
+  static RepeatedFieldType* MutableRepeatedField(Field* data) {
+    return reinterpret_cast<RepeatedFieldType*>(
+        reinterpret_cast<MapFieldBase*>(data)->MutableRepeatedField());
+  }
+  virtual Message* New(const Value* value) const {
+    return static_cast<const Message*>(value)->New();
+  }
+  // Convert an object received by this accessor to an MapEntry message to be
+  // stored in the underlying MapFieldBase.
+  virtual void ConvertToEntry(const Value* value, Message* result) const {
+    result->CopyFrom(*static_cast<const Message*>(value));
+  }
+  // Convert a MapEntry message stored in the underlying MapFieldBase to an
+  // object that will be returned by this accessor.
+  virtual const Value* ConvertFromEntry(const Message& value,
+                                        Value* /*scratch_space*/) const {
+    return static_cast<const Value*>(&value);
+  }
+};
+
 // Default implementations of RepeatedFieldAccessor for primitive types.
 template <typename T>
 class RepeatedFieldPrimitiveAccessor final : public RepeatedFieldWrapper<T> {
-  using Field = void;
-  using Value = void;
-
+  typedef void Field;
+  typedef void Value;
   using RepeatedFieldWrapper<T>::MutableRepeatedField;
 
  public:
-  RepeatedFieldPrimitiveAccessor() = default;
+  RepeatedFieldPrimitiveAccessor() {}
   void Swap(Field* data, const internal::RepeatedFieldAccessor* other_mutator,
             Field* other_data) const override {
     // Currently RepeatedFieldPrimitiveAccessor is the only implementation of
@@ -223,13 +282,12 @@ class RepeatedFieldPrimitiveAccessor final : public RepeatedFieldWrapper<T> {
 // ctype=STRING.
 class RepeatedPtrFieldStringAccessor final
     : public RepeatedPtrFieldWrapper<std::string> {
-  using Field = void;
-  using Value = void;
-
+  typedef void Field;
+  typedef void Value;
   using RepeatedFieldAccessor::Add;
 
  public:
-  RepeatedPtrFieldStringAccessor() = default;
+  RepeatedPtrFieldStringAccessor() {}
   void Swap(Field* data, const internal::RepeatedFieldAccessor* other_mutator,
             Field* other_data) const override {
     if (this == other_mutator) {
@@ -261,18 +319,16 @@ class RepeatedPtrFieldStringAccessor final
 };
 
 
-class RepeatedPtrFieldMessageAccessor
+class RepeatedPtrFieldMessageAccessor final
     : public RepeatedPtrFieldWrapper<Message> {
-  using Field = void;
-  using Value = void;
+  typedef void Field;
+  typedef void Value;
 
  public:
-  RepeatedPtrFieldMessageAccessor() = default;
-  virtual ~RepeatedPtrFieldMessageAccessor() = default;
-
+  RepeatedPtrFieldMessageAccessor() {}
   void Swap(Field* data, const internal::RepeatedFieldAccessor* other_mutator,
             Field* other_data) const override {
-    ABSL_CHECK_EQ(this, other_mutator);
+    ABSL_CHECK(this == other_mutator);
     MutableRepeatedField(data)->Swap(MutableRepeatedField(other_data));
   }
 
@@ -288,24 +344,6 @@ class RepeatedPtrFieldMessageAccessor
     return static_cast<const Value*>(&value);
   }
 };
-
-// An (transitive) implementation of RandomAccessRepeatedFieldAccessor that
-// manipulates MapFieldBase.
-class MapFieldAccessor final : public RepeatedPtrFieldMessageAccessor {
-  using Field = void;
-  using Value = void;
-
- protected:
-  const RepeatedFieldType* GetRepeatedField(const Field* data) const override {
-    return reinterpret_cast<const RepeatedFieldType*>(
-        &(reinterpret_cast<const MapFieldBase*>(data)->GetRepeatedField()));
-  }
-  RepeatedFieldType* MutableRepeatedField(Field* data) const override {
-    return reinterpret_cast<RepeatedFieldType*>(
-        reinterpret_cast<MapFieldBase*>(data)->MutableRepeatedField());
-  }
-};
-
 }  // namespace internal
 }  // namespace protobuf
 }  // namespace google

@@ -31,16 +31,9 @@
 #ifndef GOOGLE_PROTOBUF_VERSIONS_H__
 #define GOOGLE_PROTOBUF_VERSIONS_H__
 
-#include "absl/strings/string_view.h"
-#include "google/protobuf/compiler/plugin.pb.h"
-
-// Must be included last.
-#include "google/protobuf/port_def.inc"
+#include "google/protobuf/compiler/versions_suffix.h"
 
 // Defines compiler version strings for Protobuf code generators.
-//
-// When they are suffixed with "-dev", they reflect the version of the next
-// release, otherwise the current released version.
 //
 // Currently, they are embedded into comments at each gencode for public
 // Protobuf C++, Java and Python. Further, we will add version strings for rest
@@ -53,26 +46,8 @@
 //
 // Please avoid changing them manually, as they should be updated automatically
 // by Protobuf release process.
-#define PROTOBUF_CPP_VERSION_STRING "6.31.0-dev"
-#define PROTOBUF_JAVA_VERSION_STRING "4.31.0-dev"
-#define PROTOBUF_PYTHON_VERSION_STRING "6.31.0-dev"
-#define PROTOBUF_RUST_VERSION_STRING "4.31.0-dev"
+#define PROTOBUF_CPP_VERSION_STRING "4.25.1" PROTOBUF_GENCODE_VERSION_SUFFIX
+#define PROTOBUF_JAVA_VERSION_STRING "3.25.1" PROTOBUF_GENCODE_VERSION_SUFFIX
+#define PROTOBUF_PYTHON_VERSION_STRING "4.25.1" PROTOBUF_GENCODE_VERSION_SUFFIX
 
-
-namespace google {
-namespace protobuf {
-namespace compiler {
-namespace internal {
-// For internal use to parse the Protobuf language version strings.
-PROTOC_EXPORT Version ParseProtobufVersion(absl::string_view version);
-}  // namespace internal
-
-// Gets the version message according to the version strings defined above.
-const Version& GetProtobufCPPVersion(bool oss_runtime);
-const Version& GetProtobufJavaVersion(bool oss_runtime);
-const Version& GetProtobufPythonVersion(bool oss_runtime);
-}  // namespace compiler
-}  // namespace protobuf
-}  // namespace google
-#include "google/protobuf/port_undef.inc"
 #endif  // GOOGLE_PROTOBUF_VERSIONS_H__

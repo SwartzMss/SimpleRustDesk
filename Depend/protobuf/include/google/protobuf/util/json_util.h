@@ -19,6 +19,9 @@ namespace util {
 using JsonParseOptions = ::google::protobuf::json::ParseOptions;
 using JsonPrintOptions = ::google::protobuf::json::PrintOptions;
 
+using JsonOptions ABSL_DEPRECATED("use JsonPrintOptions instead") =
+    JsonPrintOptions;
+
 using ::google::protobuf::json::BinaryToJsonStream;
 using ::google::protobuf::json::BinaryToJsonString;
 

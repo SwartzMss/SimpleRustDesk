@@ -41,7 +41,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Depend\protobuf;..\Depend\protobuf\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Depend\protobuf\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -51,7 +52,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>"..\depend\protobuf\bin\protoc.exe" -I .\proto --cpp_out=. .\proto\rendezvous.proto
+      <Command>"..\depend\protobuf\bin\protoc.exe" -I .\proto --cpp_out=.  .\proto\rendezvous.proto
 </Command>
     </PreBuildEvent>
     <CustomBuildStep>

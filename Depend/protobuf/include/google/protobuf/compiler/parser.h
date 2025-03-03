@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <string>
-#include <type_traits>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
@@ -47,7 +46,7 @@ class SourceLocationTable;
 // to a FileDescriptorProto.  It does not resolve import directives or perform
 // many other kinds of validation needed to construct a complete
 // FileDescriptor.
-class PROTOBUF_EXPORT Parser final {
+class PROTOBUF_EXPORT Parser {
  public:
   Parser();
   Parser(const Parser&) = delete;
@@ -140,65 +139,33 @@ class PROTOBUF_EXPORT Parser final {
   // true.  Otherwise, return false without logging an error.
   bool TryConsume(absl::string_view text);
 
-  // In the following functions the error is passed as a lazily evaluated
-  // callable to reduce stack usage and delay the actual execution of the error
-  // statement.
-  // Super simple type erasure interface. Similar to absl::FunctionRef but takes
-  // the callable by value. Optimized for lambdas with at most a single pointer
-  // as payload.
-  class ErrorMaker {
-    using StorageT = void*;
-
-   public:
-    template <typename F,
-              typename = std::enable_if_t<std::is_same<
-                  std::string, decltype(std::declval<F>()())>::value>>
-    ErrorMaker(F f) {
-      static_assert(sizeof(F) <= sizeof(StorageT), "");
-      static_assert(alignof(F) <= alignof(StorageT), "");
-      static_assert(std::is_trivially_destructible<F>::value, "");
-      ::new (static_cast<void*>(storage_)) F(f);
-      func_ = [](const void* p) { return (*reinterpret_cast<const F*>(p))(); };
-    }
-    // This overload helps callers that just want to pass a literal string.
-    ErrorMaker(const char* error) : error_(error), func_(nullptr) {}
-
-    std::string get() const { return func_ ? func_(storage_) : error_; }
-
-   private:
-    union {
-      alignas(StorageT) char storage_[sizeof(StorageT)];
-      const char* error_;
-    };
-    std::string (*func_)(const void*);
-  };
-
   // These attempt to read some kind of token from the input.  If successful,
   // they return true.  Otherwise they return false and add the given error
   // to the error list.
 
   // Consume a token with the exact text given.
-  bool Consume(absl::string_view text, ErrorMaker error);
+  bool Consume(absl::string_view text, absl::string_view error);
   // Same as above, but automatically generates the error "Expected \"text\".",
   // where "text" is the expected token text.
   bool Consume(absl::string_view text);
   // Consume a token of type IDENTIFIER and store its text in "output".
-  bool ConsumeIdentifier(std::string* output, ErrorMaker error);
+  bool ConsumeIdentifier(std::string* output, absl::string_view error);
   // Consume an integer and store its value in "output".
-  bool ConsumeInteger(int* output, ErrorMaker error);
+  bool ConsumeInteger(int* output, absl::string_view error);
   // Consume a signed integer and store its value in "output".
-  bool ConsumeSignedInteger(int* output, ErrorMaker error);
+  bool ConsumeSignedInteger(int* output, absl::string_view error);
   // Consume a 64-bit integer and store its value in "output".  If the value
   // is greater than max_value, an error will be reported.
-  bool ConsumeInteger64(uint64_t max_value, uint64_t* output, ErrorMaker error);
+  bool ConsumeInteger64(uint64_t max_value, uint64_t* output,
+                        absl::string_view error);
   // Try to consume a 64-bit integer and store its value in "output".  No
   // error is reported on failure, allowing caller to consume token another way.
   bool TryConsumeInteger64(uint64_t max_value, uint64_t* output);
   // Consume a number and store its value in "output".  This will accept
   // tokens of either INTEGER or FLOAT type.
-  bool ConsumeNumber(double* output, ErrorMaker error);
+  bool ConsumeNumber(double* output, absl::string_view error);
   // Consume a string literal and store its (unescaped) value in "output".
-  bool ConsumeString(std::string* output, ErrorMaker error);
+  bool ConsumeString(std::string* output, absl::string_view error);
 
   // Consume a token representing the end of the statement.  Comments between
   // this token and the next will be harvested for documentation.  The given
@@ -221,18 +188,18 @@ class PROTOBUF_EXPORT Parser final {
   // Error logging helpers
 
   // Invokes error_collector_->RecordError(), if error_collector_ is not NULL.
-  PROTOBUF_NOINLINE void RecordError(int line, int column, ErrorMaker error);
+  void RecordError(int line, int column, absl::string_view error);
 
   // Invokes error_collector_->RecordError() with the line and column number
   // of the current token.
-  PROTOBUF_NOINLINE void RecordError(ErrorMaker error);
+  void RecordError(absl::string_view error);
 
   // Invokes error_collector_->RecordWarning(), if error_collector_ is not NULL.
-  PROTOBUF_NOINLINE void RecordWarning(int line, int column, ErrorMaker error);
+  void RecordWarning(int line, int column, absl::string_view warning);
 
   // Invokes error_collector_->RecordWarning() with the line and column number
   // of the current token.
-  PROTOBUF_NOINLINE void RecordWarning(ErrorMaker error);
+  void RecordWarning(absl::string_view warning);
 
   // Records a location in the SourceCodeInfo.location table (see
   // descriptor.proto).  We use RAII to ensure that the start and end locations
@@ -412,10 +379,11 @@ class PROTOBUF_EXPORT Parser final {
                      const LocationRecorder& message_location);
   bool ParseReservedNames(DescriptorProto* message,
                           const LocationRecorder& parent_location);
-  bool ParseReservedName(std::string* name, ErrorMaker error_message);
+  bool ParseReservedName(std::string* name, absl::string_view error_message);
   bool ParseReservedIdentifiers(DescriptorProto* message,
                                 const LocationRecorder& parent_location);
-  bool ParseReservedIdentifier(std::string* name, ErrorMaker error_message);
+  bool ParseReservedIdentifier(std::string* name,
+                               absl::string_view error_message);
   bool ParseReservedNumbers(DescriptorProto* message,
                             const LocationRecorder& parent_location);
   bool ParseReserved(EnumDescriptorProto* message,
@@ -563,7 +531,6 @@ class PROTOBUF_EXPORT Parser final {
   bool stop_after_syntax_identifier_;
   std::string syntax_identifier_;
   Edition edition_ = Edition::EDITION_UNKNOWN;
-  int recursion_depth_;
 
   // Leading doc comments for the next declaration.  These are not complete
   // yet; use ConsumeEndOfDeclaration() to get the complete comments.

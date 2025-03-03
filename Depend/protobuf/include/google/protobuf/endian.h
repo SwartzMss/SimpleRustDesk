@@ -14,8 +14,6 @@
 
 #include <cstdint>
 
-#include "absl/base/config.h"
-
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
@@ -24,8 +22,8 @@ namespace protobuf {
 namespace internal {
 
 inline uint64_t BSwap64(uint64_t host_int) {
-#if defined(__GNUC__) || ABSL_HAVE_BUILTIN(__builtin_bswap64)
-  return __builtin_bswap64(host_int);
+#if defined(PROTOBUF_BUILTIN_BSWAP64)
+  return PROTOBUF_BUILTIN_BSWAP64(host_int);
 #elif defined(_MSC_VER)
   return _byteswap_uint64(host_int);
 #else
@@ -41,8 +39,8 @@ inline uint64_t BSwap64(uint64_t host_int) {
 }
 
 inline uint32_t BSwap32(uint32_t host_int) {
-#if defined(__GNUC__) || ABSL_HAVE_BUILTIN(__builtin_bswap32)
-  return __builtin_bswap32(host_int);
+#if defined(PROTOBUF_BUILTIN_BSWAP32)
+  return PROTOBUF_BUILTIN_BSWAP32(host_int);
 #elif defined(_MSC_VER)
   return _byteswap_ulong(host_int);
 #else
@@ -54,8 +52,8 @@ inline uint32_t BSwap32(uint32_t host_int) {
 }
 
 inline uint16_t BSwap16(uint16_t host_int) {
-#if defined(__GNUC__) || ABSL_HAVE_BUILTIN(__builtin_bswap16)
-  return __builtin_bswap16(host_int);
+#if defined(PROTOBUF_BUILTIN_BSWAP16)
+  return PROTOBUF_BUILTIN_BSWAP16(host_int);
 #elif defined(_MSC_VER)
   return _byteswap_ushort(host_int);
 #else
@@ -67,7 +65,7 @@ inline uint16_t BSwap16(uint16_t host_int) {
 namespace little_endian {
 
 inline uint16_t FromHost(uint16_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return BSwap16(value);
 #else
   return value;
@@ -75,7 +73,7 @@ inline uint16_t FromHost(uint16_t value) {
 }
 
 inline uint32_t FromHost(uint32_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return BSwap32(value);
 #else
   return value;
@@ -83,7 +81,7 @@ inline uint32_t FromHost(uint32_t value) {
 }
 
 inline uint64_t FromHost(uint64_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return BSwap64(value);
 #else
   return value;
@@ -91,7 +89,7 @@ inline uint64_t FromHost(uint64_t value) {
 }
 
 inline uint16_t ToHost(uint16_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return BSwap16(value);
 #else
   return value;
@@ -99,7 +97,7 @@ inline uint16_t ToHost(uint16_t value) {
 }
 
 inline uint32_t ToHost(uint32_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return BSwap32(value);
 #else
   return value;
@@ -107,7 +105,7 @@ inline uint32_t ToHost(uint32_t value) {
 }
 
 inline uint64_t ToHost(uint64_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return BSwap64(value);
 #else
   return value;
@@ -119,7 +117,7 @@ inline uint64_t ToHost(uint64_t value) {
 namespace big_endian {
 
 inline uint16_t FromHost(uint16_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return value;
 #else
   return BSwap16(value);
@@ -127,7 +125,7 @@ inline uint16_t FromHost(uint16_t value) {
 }
 
 inline uint32_t FromHost(uint32_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return value;
 #else
   return BSwap32(value);
@@ -135,7 +133,7 @@ inline uint32_t FromHost(uint32_t value) {
 }
 
 inline uint64_t FromHost(uint64_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return value;
 #else
   return BSwap64(value);
@@ -143,7 +141,7 @@ inline uint64_t FromHost(uint64_t value) {
 }
 
 inline uint16_t ToHost(uint16_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return value;
 #else
   return BSwap16(value);
@@ -151,7 +149,7 @@ inline uint16_t ToHost(uint16_t value) {
 }
 
 inline uint32_t ToHost(uint32_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return value;
 #else
   return BSwap32(value);
@@ -159,7 +157,7 @@ inline uint32_t ToHost(uint32_t value) {
 }
 
 inline uint64_t ToHost(uint64_t value) {
-#if defined(ABSL_IS_BIG_ENDIAN)
+#if defined(PROTOBUF_BIG_ENDIAN)
   return value;
 #else
   return BSwap64(value);

@@ -8,12 +8,12 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_PHP_GENERATOR_H__
 #define GOOGLE_PROTOBUF_COMPILER_PHP_GENERATOR_H__
 
-#include <cstdint>
-#include <string>
-
 #include "google/protobuf/compiler/code_generator.h"
 #include "google/protobuf/compiler/php/names.h"
 #include "google/protobuf/descriptor.h"
+
+#include <string>
+
 #include "google/protobuf/port_def.inc"
 
 namespace google {
@@ -37,13 +37,7 @@ class PROTOC_EXPORT Generator : public CodeGenerator {
                    std::string* error) const override;
 
   uint64_t GetSupportedFeatures() const override {
-    return Feature::FEATURE_PROTO3_OPTIONAL;
-  }
-
-  Edition GetMinimumEdition() const override { return Edition::EDITION_PROTO2; }
-  Edition GetMaximumEdition() const override { return Edition::EDITION_2023; }
-  std::vector<const FieldDescriptor*> GetFeatureExtensions() const override {
-    return {};
+    return FEATURE_PROTO3_OPTIONAL;
   }
 
  private:

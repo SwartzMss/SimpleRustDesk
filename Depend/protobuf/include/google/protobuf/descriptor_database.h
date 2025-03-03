@@ -14,15 +14,13 @@
 #ifndef GOOGLE_PROTOBUF_DESCRIPTOR_DATABASE_H__
 #define GOOGLE_PROTOBUF_DESCRIPTOR_DATABASE_H__
 
-#include <memory>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/container/btree_map.h"
-#include "absl/strings/string_view.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/port.h"
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
@@ -50,17 +48,6 @@ class MergedDescriptorDatabase;
 // can be created which wraps a DescriptorDatabase and only builds particular
 // descriptors when they are needed.
 class PROTOBUF_EXPORT DescriptorDatabase {
- protected:
-  // Alias to enable the migration from const std::string& to absl::string_view
-  // in virtual methods. Controlled by
-  // PROTOBUF_FUTURE_STRING_VIEW_DESCRIPTOR_DATABASE to allow a global switch
-  // when ready for consistent transition.
-#ifdef PROTOBUF_FUTURE_STRING_VIEW_DESCRIPTOR_DATABASE
-  using StringViewArg = absl::string_view;
-#else
-  using StringViewArg = const std::string&;
-#endif
-
  public:
   inline DescriptorDatabase() {}
   DescriptorDatabase(const DescriptorDatabase&) = delete;
@@ -69,20 +56,20 @@ class PROTOBUF_EXPORT DescriptorDatabase {
 
   // Find a file by file name.  Fills in in *output and returns true if found.
   // Otherwise, returns false, leaving the contents of *output undefined.
-  virtual bool FindFileByName(StringViewArg filename,
+  virtual bool FindFileByName(const std::string& filename,
                               FileDescriptorProto* output) = 0;
 
   // Find the file that declares the given fully-qualified symbol name.
   // If found, fills in *output and returns true, otherwise returns false
   // and leaves *output undefined.
-  virtual bool FindFileContainingSymbol(StringViewArg symbol_name,
+  virtual bool FindFileContainingSymbol(const std::string& symbol_name,
                                         FileDescriptorProto* output) = 0;
 
   // Find the file which defines an extension extending the given message type
   // with the given field number.  If found, fills in *output and returns true,
   // otherwise returns false and leaves *output undefined.  containing_type
   // must be a fully-qualified type name.
-  virtual bool FindFileContainingExtension(StringViewArg containing_type,
+  virtual bool FindFileContainingExtension(const std::string& containing_type,
                                            int field_number,
                                            FileDescriptorProto* output) = 0;
 
@@ -96,7 +83,7 @@ class PROTOBUF_EXPORT DescriptorDatabase {
   //
   // This method has a default implementation that always returns
   // false.
-  virtual bool FindAllExtensionNumbers(StringViewArg /* extendee_type */,
+  virtual bool FindAllExtensionNumbers(const std::string& /* extendee_type */,
                                        std::vector<int>* /* output */) {
     return false;
   }
@@ -127,12 +114,6 @@ class PROTOBUF_EXPORT DescriptorDatabase {
   // searching all message names, otherwise returns false and leaves output
   // unchanged.
   bool FindAllMessageNames(std::vector<std::string>* output);
-
- private:
-  static_assert(std::is_same<StringViewArg, absl::string_view>::value ||
-                    std::is_same<StringViewArg, const std::string&>::value,
-                "StringViewArg must be either "
-                "absl::string_view or const std::string&");
 };
 
 // A DescriptorDatabase into which you can insert files manually.
@@ -177,14 +158,14 @@ class PROTOBUF_EXPORT SimpleDescriptorDatabase : public DescriptorDatabase {
   bool AddUnowned(const FileDescriptorProto* file);
 
   // implements DescriptorDatabase -----------------------------------
-  bool FindFileByName(StringViewArg filename,
+  bool FindFileByName(const std::string& filename,
                       FileDescriptorProto* output) override;
-  bool FindFileContainingSymbol(StringViewArg symbol_name,
+  bool FindFileContainingSymbol(const std::string& symbol_name,
                                 FileDescriptorProto* output) override;
-  bool FindFileContainingExtension(StringViewArg containing_type,
+  bool FindFileContainingExtension(const std::string& containing_type,
                                    int field_number,
                                    FileDescriptorProto* output) override;
-  bool FindAllExtensionNumbers(StringViewArg extendee_type,
+  bool FindAllExtensionNumbers(const std::string& extendee_type,
                                std::vector<int>* output) override;
 
   bool FindAllFileNames(std::vector<std::string>* output) override;
@@ -199,15 +180,15 @@ class PROTOBUF_EXPORT SimpleDescriptorDatabase : public DescriptorDatabase {
     // to the index.
     bool AddFile(const FileDescriptorProto& file, Value value);
     bool AddSymbol(absl::string_view name, Value value);
-    bool AddNestedExtensions(StringViewArg filename,
+    bool AddNestedExtensions(const std::string& filename,
                              const DescriptorProto& message_type, Value value);
-    bool AddExtension(StringViewArg filename, const FieldDescriptorProto& field,
-                      Value value);
+    bool AddExtension(const std::string& filename,
+                      const FieldDescriptorProto& field, Value value);
 
-    Value FindFile(StringViewArg filename);
-    Value FindSymbol(StringViewArg name);
-    Value FindExtension(StringViewArg containing_type, int field_number);
-    bool FindAllExtensionNumbers(StringViewArg containing_type,
+    Value FindFile(const std::string& filename);
+    Value FindSymbol(const std::string& name);
+    Value FindExtension(const std::string& containing_type, int field_number);
+    bool FindAllExtensionNumbers(const std::string& containing_type,
                                  std::vector<int>* output);
     void FindAllFileNames(std::vector<std::string>* output);
 
@@ -302,18 +283,18 @@ class PROTOBUF_EXPORT EncodedDescriptorDatabase : public DescriptorDatabase {
   bool AddCopy(const void* encoded_file_descriptor, int size);
 
   // Like FindFileContainingSymbol but returns only the name of the file.
-  bool FindNameOfFileContainingSymbol(StringViewArg symbol_name,
+  bool FindNameOfFileContainingSymbol(const std::string& symbol_name,
                                       std::string* output);
 
   // implements DescriptorDatabase -----------------------------------
-  bool FindFileByName(StringViewArg filename,
+  bool FindFileByName(const std::string& filename,
                       FileDescriptorProto* output) override;
-  bool FindFileContainingSymbol(StringViewArg symbol_name,
+  bool FindFileContainingSymbol(const std::string& symbol_name,
                                 FileDescriptorProto* output) override;
-  bool FindFileContainingExtension(StringViewArg containing_type,
+  bool FindFileContainingExtension(const std::string& containing_type,
                                    int field_number,
                                    FileDescriptorProto* output) override;
-  bool FindAllExtensionNumbers(StringViewArg extendee_type,
+  bool FindAllExtensionNumbers(const std::string& extendee_type,
                                std::vector<int>* output) override;
   bool FindAllFileNames(std::vector<std::string>* output) override;
 
@@ -330,35 +311,27 @@ class PROTOBUF_EXPORT EncodedDescriptorDatabase : public DescriptorDatabase {
                   FileDescriptorProto* output);
 };
 
-struct PROTOBUF_EXPORT DescriptorPoolDatabaseOptions {
-  // If true, the database will preserve source code info when returning
-  // descriptors.
-  bool preserve_source_code_info = false;
-};
-
 // A DescriptorDatabase that fetches files from a given pool.
 class PROTOBUF_EXPORT DescriptorPoolDatabase : public DescriptorDatabase {
  public:
-  explicit DescriptorPoolDatabase(const DescriptorPool& pool,
-                                  DescriptorPoolDatabaseOptions options = {});
+  explicit DescriptorPoolDatabase(const DescriptorPool& pool);
   DescriptorPoolDatabase(const DescriptorPoolDatabase&) = delete;
   DescriptorPoolDatabase& operator=(const DescriptorPoolDatabase&) = delete;
   ~DescriptorPoolDatabase() override;
 
   // implements DescriptorDatabase -----------------------------------
-  bool FindFileByName(StringViewArg filename,
+  bool FindFileByName(const std::string& filename,
                       FileDescriptorProto* output) override;
-  bool FindFileContainingSymbol(StringViewArg symbol_name,
+  bool FindFileContainingSymbol(const std::string& symbol_name,
                                 FileDescriptorProto* output) override;
-  bool FindFileContainingExtension(StringViewArg containing_type,
+  bool FindFileContainingExtension(const std::string& containing_type,
                                    int field_number,
                                    FileDescriptorProto* output) override;
-  bool FindAllExtensionNumbers(StringViewArg extendee_type,
+  bool FindAllExtensionNumbers(const std::string& extendee_type,
                                std::vector<int>* output) override;
 
  private:
   const DescriptorPool& pool_;
-  DescriptorPoolDatabaseOptions options_;
 };
 
 // A DescriptorDatabase that wraps two or more others.  It first searches the
@@ -378,16 +351,16 @@ class PROTOBUF_EXPORT MergedDescriptorDatabase : public DescriptorDatabase {
   ~MergedDescriptorDatabase() override;
 
   // implements DescriptorDatabase -----------------------------------
-  bool FindFileByName(StringViewArg filename,
+  bool FindFileByName(const std::string& filename,
                       FileDescriptorProto* output) override;
-  bool FindFileContainingSymbol(StringViewArg symbol_name,
+  bool FindFileContainingSymbol(const std::string& symbol_name,
                                 FileDescriptorProto* output) override;
-  bool FindFileContainingExtension(StringViewArg containing_type,
+  bool FindFileContainingExtension(const std::string& containing_type,
                                    int field_number,
                                    FileDescriptorProto* output) override;
   // Merges the results of calling all databases. Returns true iff any
   // of the databases returned true.
-  bool FindAllExtensionNumbers(StringViewArg extendee_type,
+  bool FindAllExtensionNumbers(const std::string& extendee_type,
                                std::vector<int>* output) override;
 
 

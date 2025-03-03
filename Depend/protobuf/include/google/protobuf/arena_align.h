@@ -55,7 +55,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "absl/base/macros.h"
 #include "absl/log/absl_check.h"
 #include "absl/numeric/bits.h"
 
@@ -72,37 +71,37 @@ struct ArenaAlignDefault {
   static constexpr bool IsAligned(size_t n) { return (n & (align - 1)) == 0U; }
 
   template <typename T>
-  static PROTOBUF_ALWAYS_INLINE bool IsAligned(T* ptr) {
+  static inline PROTOBUF_ALWAYS_INLINE bool IsAligned(T* ptr) {
     return (reinterpret_cast<uintptr_t>(ptr) & (align - 1)) == 0U;
   }
 
-  static PROTOBUF_ALWAYS_INLINE constexpr size_t Ceil(size_t n) {
+  static inline PROTOBUF_ALWAYS_INLINE constexpr size_t Ceil(size_t n) {
     return (n + align - 1) & ~(align - 1);
   }
-  static PROTOBUF_ALWAYS_INLINE constexpr size_t Floor(size_t n) {
+  static inline PROTOBUF_ALWAYS_INLINE constexpr size_t Floor(size_t n) {
     return (n & ~(align - 1));
   }
 
-  static PROTOBUF_ALWAYS_INLINE size_t Padded(size_t n) {
+  static inline PROTOBUF_ALWAYS_INLINE size_t Padded(size_t n) {
     ABSL_ASSERT(IsAligned(n));
     return n;
   }
 
   template <typename T>
-  static PROTOBUF_ALWAYS_INLINE T* Ceil(T* ptr) {
+  static inline PROTOBUF_ALWAYS_INLINE T* Ceil(T* ptr) {
     uintptr_t intptr = reinterpret_cast<uintptr_t>(ptr);
     return reinterpret_cast<T*>((intptr + align - 1) & ~(align - 1));
   }
 
   template <typename T>
-  static PROTOBUF_ALWAYS_INLINE T* CeilDefaultAligned(T* ptr) {
+  static inline PROTOBUF_ALWAYS_INLINE T* CeilDefaultAligned(T* ptr) {
     ABSL_ASSERT(IsAligned(ptr));
     return ptr;
   }
 
   // Address sanitizer enabled alignment check
   template <typename T>
-  static PROTOBUF_ALWAYS_INLINE T* CheckAligned(T* ptr) {
+  static inline PROTOBUF_ALWAYS_INLINE T* CheckAligned(T* ptr) {
     ABSL_ASSERT(IsAligned(ptr));
     return ptr;
   }

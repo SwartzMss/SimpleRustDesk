@@ -12,12 +12,14 @@
 #define GOOGLE_PROTOBUF_GENERATED_MESSAGE_TCTABLE_GEN_H__
 
 #include <cstdint>
+#include <functional>
+#include <string>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/generated_message_tctable_decl.h"
 
 // Must come last:
 #include "google/protobuf/port_def.inc"
@@ -36,12 +38,8 @@ struct PROTOBUF_EXPORT TailCallTableInfo {
   struct MessageOptions {
     bool is_lite;
     bool uses_codegen;
-    // TODO: remove this after A/B test is done.
-    bool should_profile_driven_cluster_aux_subtable;
   };
-  struct FieldOptions {
-    const FieldDescriptor* field;
-    int has_bit_index;
+  struct PerFieldOptions {
     // For presence awareness (e.g. PDProto).
     float presence_probability;
     // kTvEager, kTvLazy, or 0
@@ -50,27 +48,31 @@ struct PROTOBUF_EXPORT TailCallTableInfo {
     bool is_implicitly_weak;
     bool use_direct_tcparser_table;
     bool should_split;
-    int inlined_string_index;
+  };
+  class OptionProvider {
+   public:
+    virtual PerFieldOptions GetForField(const FieldDescriptor*) const = 0;
+
+   protected:
+    ~OptionProvider() = default;
   };
 
   TailCallTableInfo(const Descriptor* descriptor,
+                    const std::vector<const FieldDescriptor*>& ordered_fields,
                     const MessageOptions& message_options,
-                    absl::Span<const FieldOptions> ordered_fields);
-
-  TcParseFunction fallback_function;
+                    const OptionProvider& option_provider,
+                    const std::vector<int>& has_bit_indices,
+                    const std::vector<int>& inlined_string_indices);
 
   // Fields parsed by the table fast-path.
   struct FastFieldInfo {
     struct Empty {};
     struct Field {
       TcParseFunction func;
-      const FieldDescriptor* field;
       uint16_t coded_tag;
+      const FieldDescriptor* field;
       uint8_t hasbit_idx;
       uint8_t aux_idx;
-
-      // For internal caching.
-      float presence_probability;
     };
     struct NonField {
       TcParseFunction func;
@@ -92,9 +94,6 @@ struct PROTOBUF_EXPORT TailCallTableInfo {
     int inlined_string_idx;
     uint16_t aux_idx;
     uint16_t type_card;
-
-    // For internal caching.
-    cpp::Utf8CheckMode utf8_check_mode;
   };
   std::vector<FieldEntryInfo> field_entries;
 
@@ -107,11 +106,11 @@ struct PROTOBUF_EXPORT TailCallTableInfo {
     kSubTable,
     kSubMessageWeak,
     kMessageVerifyFunc,
-    kSelfVerifyFunc,
     kEnumRange,
     kEnumValidator,
     kNumericOffset,
     kMapAuxInfo,
+    kCreateInArena,
   };
   struct AuxEntry {
     AuxType type;

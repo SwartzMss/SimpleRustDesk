@@ -243,7 +243,7 @@ struct Proto2Descriptor {
 
   static bool IsRepeated(Field f) { return f->is_repeated(); }
 
-  static bool IsExplicitPresence(Field f) { return f->has_presence(); }
+  static bool IsOptional(Field f) { return f->has_presence(); }
 
   static bool IsImplicitPresence(Field f) {
     return !f->is_repeated() && !f->has_presence();
@@ -277,7 +277,7 @@ struct Proto2Descriptor {
 
   static absl::StatusOr<std::string> EnumNameByNumber(Field f, int32_t number) {
     if (const auto* ev = f->enum_type()->FindValueByNumber(number)) {
-      return std::string(ev->name());
+      return ev->name();
     }
     return absl::InvalidArgumentError(
         absl::StrFormat("unknown enum number: '%d'", number));
@@ -430,17 +430,12 @@ struct Proto3Type {
            google::protobuf::Field::CARDINALITY_REPEATED;
   }
 
-  static bool IsExplicitPresence(Field f) {
-    // Implicit presence requires this weird check: in proto3 the following
-    // cases support presence:
-    // 1) Anything contained in a oneof (including things explicitly declared
-    //    'optional' which are represented as as synthetic oneof in proto3).
-    // 2) Fields that are a message type (but not map fields which are also
-    //    TYPE_MESSAGE here).
+  static bool IsOptional(Field f) {
+    // Implicit presence requires this weird check: in proto3, everything is
+    // implicit presence, except for things that are members of oneofs,
+    // which is how proto3 optional is represented.
     if (f->parent().proto().syntax() == google::protobuf::SYNTAX_PROTO3) {
-      return f->proto().oneof_index() != 0 ||
-             (f->proto().kind() == google::protobuf::Field::TYPE_MESSAGE &&
-              !IsRepeated(f));
+      return f->proto().oneof_index() != 0;
     }
 
     return f->proto().cardinality() ==
@@ -449,7 +444,7 @@ struct Proto3Type {
   }
 
   static bool IsImplicitPresence(Field f) {
-    return !IsRepeated(f) && !IsExplicitPresence(f);
+    return !IsRepeated(f) && !IsOptional(f);
   }
 
   static bool IsExtension(Field f) { return false; }

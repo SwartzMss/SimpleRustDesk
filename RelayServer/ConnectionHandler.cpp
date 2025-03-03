@@ -91,15 +91,39 @@ void ConnectionHandler::onReadyRead()
 
 void ConnectionHandler::processData(const QByteArray& data)
 {
-	if (data.startsWith("UUID:")) {
-		QString uuid = QString::fromUtf8(data.mid(5)).trimmed();
-		if (!uuid.isEmpty()) {
-			LogWidget::instance()->addLog(QString("Received relay request with UUID: %1").arg(uuid), LogWidget::Info);
-			emit relayRequestReceived(uuid);
+	// 如果还没有配对，认为收到的是握手数据（后续数据直接转发）
+	if (!m_peer) 
+	{
+		// 解析 proto 消息，注意这里假设一次能收到完整消息
+		RequestRelay  request;
+		if (!request.ParseFromArray(data.constData(), data.size())) {
+			LogWidget::instance()->addLog("Failed to parse RelayRequest from proto data", LogWidget::Error);
+			return;
 		}
+		QString id = QString::fromStdString(request.id());
+		QString uuid = QString::fromStdString(request.uuid());
+
+		if (uuid.isEmpty()) {
+			LogWidget::instance()->addLog("Received relay request with empty UUID", LogWidget::Error);
+			return;
+		}
+
+		// 根据 id 判断连接角色
+		if (!id.isEmpty()) {
+			// 发起方：先进行缓存等待对方连接
+			LogWidget::instance()->addLog(QString("Received initiator relay request: id=%1, uuid=%2").arg(id, uuid), LogWidget::Info);
+		}
+		else {
+			// 被控制方：等待与发起方进行配对
+			LogWidget::instance()->addLog(QString("Received controlled relay request with uuid: %1").arg(uuid), LogWidget::Info);
+		}
+
+		// 发射信号，由 RelayServer 的 tryPairing 来完成配对（第一来缓存、第二来配对）
+		emit relayRequestReceived(uuid);
 	}
-	else {
-		// 非 UUID 消息，若已配对则转发数据
+	else 
+	{
+		// 已配对后，收到的数据直接转发给对端
 		if (m_peer && m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
 			m_peer->socket()->write(data);
 		}
