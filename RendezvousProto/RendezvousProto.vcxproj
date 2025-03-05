@@ -72,6 +72,9 @@ xcopy /Y "$(OutDir)\RendezvousProto.lib" "$(SolutionDir)\Depend\RendezvousProto\
   <ItemGroup>
     <ClCompile Include="rendezvous.pb.cc" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="proto\rendezvous.proto" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

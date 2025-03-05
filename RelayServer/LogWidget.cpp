@@ -7,6 +7,7 @@ LogWidget::LogWidget()
 {
 	logEdit = new QTextEdit(this);
 	logEdit->setReadOnly(true);
+	logEdit->setLineWrapMode(QTextEdit::NoWrap);
 }
 
 void LogWidget::init(QWidget* parent)

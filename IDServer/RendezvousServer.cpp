@@ -4,7 +4,7 @@
 #include "LogWidget.h"
 
 RendezvousServer::RendezvousServer(QObject* parent)
-	: QObject(parent)
+	: QObject(parent) , tcpServer(nullptr)
 {
 	msgProcessor = new MessageProcessor(this);
 }
@@ -47,7 +47,7 @@ void RendezvousServer::onTcpReadyRead(QTcpSocket* socket) {
 	QByteArray data = socket->readAll();
 	QHostAddress sender = socket->peerAddress();
 	quint16 senderPort = socket->peerPort();
-	msgProcessor->processMessage(data, socket, false, sender, senderPort);
+	msgProcessor->processMessage(data,sender, senderPort);
 }
 
 void RendezvousServer::onTcpDisconnected(QTcpSocket* socket) {

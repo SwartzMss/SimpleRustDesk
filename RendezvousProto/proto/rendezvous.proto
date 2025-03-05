@@ -6,9 +6,22 @@ message RequestRelay {
   string uuid = 2;
 }
 
+message RegisterPeer {
+  bytes uuid = 2;
+}
+
+message RegisterPeerResponse {
+  enum Result {
+    OK = 0;
+    SERVER_ERROR = 7;
+  }
+  Result result = 1;
+}
 
 message RendezvousMessage {
   oneof union {
     RequestRelay request_relay = 1;
+    RegisterPeer register_peer = 2;
+    RegisterPeerResponse register_peer_response = 3;
   }
 }
