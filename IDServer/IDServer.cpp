@@ -19,6 +19,10 @@ IDServer::IDServer(QWidget* parent)
 	ui.tableView->horizontalHeader()->setStretchLastSection(true);
 
 	timer = new QTimer(this);
+
+	server_ = new RendezvousServer;
+
+	ui.stopButton_->setEnabled(false);
 }
 
 IDServer::~IDServer()
@@ -31,11 +35,26 @@ void IDServer::onStartClicked()
 		LogWidget::instance()->addLog(QString("Failed to open database"), LogWidget::Error);
 		return;
 	}
+
+	QString text = ui.lineEdit->text();
+	bool isNumber = false;
+	int port = text.toInt(&isNumber);
+	if (!isNumber)
+	{
+		LogWidget::instance()->addLog("Port is invalid", LogWidget::Error);
+		return;
+	}
+
+	if (!server_->start(port))
+	{
+		return;
+	}
+	LogWidget::instance()->addLog("Server start successfully", LogWidget::Info);
 	// 清空现有数据
 	model->clear();
 
 	// 设置表头
-	model->setHorizontalHeaderLabels({ "ID", "UUID", "IP", "Status" });
+	model->setHorizontalHeaderLabels({"UUID", "IP", "Status" });
 
 	// 获取所有用户信息
 	std::vector<UserInfo> userInfos = userInfoDB.getAllUserInfo();
@@ -43,7 +62,6 @@ void IDServer::onStartClicked()
 	// 将数据加载到 model 中
 	for (const auto& userInfo : userInfos) {
 		QList<QStandardItem*> items;
-		items.append(new QStandardItem(QString::number(userInfo.ID)));
 		items.append(new QStandardItem(QString::fromStdString(userInfo.UUID)));
 		items.append(new QStandardItem(QString::fromStdString(userInfo.IP)));
 		items.append(new QStandardItem(QString::fromStdString("Offline")));
@@ -55,6 +73,13 @@ void IDServer::onStartClicked()
 
 	connect(timer, &QTimer::timeout, this, &IDServer::updateOnlineStatus);
 	timer->start(5000);
+
+	ui.startButton_->setEnabled(false);
+	ui.stopButton_->setEnabled(true);
+	ui.lineEdit->setEnabled(false);
+
+
+	
 	
 }
 
@@ -65,20 +90,25 @@ void IDServer::onStopClicked()
 	}
 
 	userInfoDB.close();
+
+	ui.startButton_->setEnabled(true);
+	ui.stopButton_->setEnabled(false);
+	ui.lineEdit->setEnabled(true);
+	server_->stop();
 }
 
 void IDServer::updateOnlineStatus()
 {
 	for (int row = 0; row < model->rowCount(); ++row) {
 		// 获取 IP 地址
-		QStandardItem* ipItem = model->item(row, 2);  // IP 列是第 3 列（索引 2）
+		QStandardItem* ipItem = model->item(row, 1);
 		QString ip = ipItem->text();
 
 		// 检测在线状态（假设有一个函数 checkOnlineStatus）
 		bool isOnline = true;
 
 		// 更新 onlineStatus 列
-		QStandardItem* statusItem = model->item(row, 3);  // Online Status 列是第 4 列（索引 3）
+		QStandardItem* statusItem = model->item(row, 2); 
 		statusItem->setText(isOnline ? "Online" : "Offline");
 	}
 }

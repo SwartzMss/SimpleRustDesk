@@ -5,6 +5,7 @@
 #include "ui_IDServer.h"
 #include <QTimer>
 #include "UserInfoDB.h"
+#include "RendezvousServer.h"
 
 class IDServer : public QWidget
 {
@@ -23,5 +24,6 @@ private:
     Ui::IDServerClass ui;
     UserInfoDB userInfoDB;
     QStandardItemModel* model;
+    RendezvousServer* server_;
     QTimer* timer;
 };

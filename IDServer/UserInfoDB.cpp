@@ -10,7 +10,7 @@ UserInfoDB::~UserInfoDB() {
 
 bool UserInfoDB::open() {
 	if (sqlite3_open(dbPath.c_str(), &db) == SQLITE_OK) {
-		std::string sql = "CREATE TABLE IF NOT EXISTS UserInfo (ID INTEGER PRIMARY KEY, UUID TEXT, IP TEXT);";
+		std::string sql = "CREATE TABLE IF NOT EXISTS UserInfo (UUID TEXT PRIMARY KEY, IP TEXT);";
 		return execute(sql);
 	}
 	return false;
@@ -27,11 +27,10 @@ std::vector<UserInfo> UserInfoDB::getAllUserInfo() {
 	std::vector<UserInfo> userInfos;
 	sqlite3_stmt* stmt;
 
-	std::string sql = "SELECT ID, UUID, IP FROM UserInfo;";
+	std::string sql = "SELECT UUID, IP FROM UserInfo;";
 	if (prepareStatement(sql, &stmt)) {
 		while (sqlite3_step(stmt) == SQLITE_ROW) {
 			UserInfo userInfo;
-			userInfo.ID = sqlite3_column_int(stmt, 0);
 			userInfo.UUID = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
 			userInfo.IP = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
 			userInfos.push_back(userInfo);
@@ -42,13 +41,12 @@ std::vector<UserInfo> UserInfoDB::getAllUserInfo() {
 }
 
 bool UserInfoDB::createOrUpdate(const UserInfo& userInfo) {
-	std::string sql = "INSERT OR REPLACE INTO UserInfo (ID, UUID, IP) VALUES (?, ?, ?);";
+	std::string sql = "INSERT OR REPLACE INTO UserInfo (UUID, IP) VALUES (?, ?);";
 	sqlite3_stmt* stmt;
 
 	if (prepareStatement(sql, &stmt)) {
-		sqlite3_bind_int(stmt, 1, userInfo.ID);
-		sqlite3_bind_text(stmt, 2, userInfo.UUID.c_str(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 3, userInfo.IP.c_str(), -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 1, userInfo.UUID.c_str(), -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 2, userInfo.IP.c_str(), -1, SQLITE_STATIC);
 
 		bool result = sqlite3_step(stmt) == SQLITE_DONE;
 		sqlite3_finalize(stmt);

@@ -7,7 +7,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{1DEA01B5-808F-441B-961A-584B106BF5B5}</ProjectGuid>
+    <ProjectGuid>{EEBD14BE-9D01-418E-B802-C9182D6F715F}</ProjectGuid>
     <Keyword>QtVS_v304</Keyword>
     <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">10.0</WindowsTargetPlatformVersion>
     <QtMsBuild Condition="'$(QtMsBuild)'=='' OR !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
@@ -41,16 +41,6 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Depend\sqlite3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>sqlite3.lib;Qt6Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\Depend\sqlite3\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -68,25 +58,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="LogWidget.cpp" />
-    <ClCompile Include="MessageProcessor.cpp" />
-    <ClCompile Include="peer.cpp" />
-    <ClCompile Include="PeerManager.cpp" />
-    <ClCompile Include="RendezvousServer.cpp" />
-    <ClCompile Include="UserInfoDB.cpp" />
-    <QtRcc Include="IDServer.qrc" />
-    <QtUic Include="IDServer.ui" />
-    <QtMoc Include="IDServer.h" />
-    <ClCompile Include="IDServer.cpp" />
+    <QtRcc Include="DeskServer.qrc" />
+    <QtUic Include="DeskServer.ui" />
+    <QtMoc Include="DeskServer.h" />
+    <ClCompile Include="DeskServer.cpp" />
     <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="RendezvousServer.h" />
-    <QtMoc Include="MessageProcessor.h" />
-    <ClInclude Include="Peer.h" />
-    <ClInclude Include="PeerManager.h" />
-    <QtMoc Include="LogWidget.h" />
-    <ClInclude Include="UserInfoDB.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

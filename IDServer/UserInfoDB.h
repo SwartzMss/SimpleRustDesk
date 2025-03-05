@@ -6,7 +6,6 @@
 #include <vector>
 
 struct UserInfo {
-	int ID;
 	std::string UUID;
 	std::string IP;
 };
