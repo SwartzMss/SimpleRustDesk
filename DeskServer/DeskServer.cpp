@@ -69,5 +69,6 @@ void DeskServer::onRegistrationResult(int result)
 
 void DeskServer::onClientError(const QString& errorString)
 {
-	LogWidget::instance()->addLog(QString(" PeerClient error: %1").arg(errorString), LogWidget::Warning);
+	LogWidget::instance()->addLog(QString("%1").arg(errorString), LogWidget::Warning);
+	DeskServer::onStopClicked();
 }

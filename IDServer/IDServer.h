@@ -18,12 +18,12 @@ public:
 private slots:
 	void onStartClicked();
 	void onStopClicked();
-    void updateOnlineStatus();
+	void onRegistrationSuccess(const QString& uuid, const QString& ip);
+    void onConnectionDisconnected(const QString& uuid);
 
 private:
     Ui::IDServerClass ui;
     UserInfoDB userInfoDB;
     QStandardItemModel* model;
     RendezvousServer* server_;
-    QTimer* timer;
 };

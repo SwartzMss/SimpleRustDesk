@@ -20,6 +20,7 @@ bool PeerClient::start(const QHostAddress& address, quint16 port)
 	m_socket = new QTcpSocket(this);
 	connect(m_socket, &QTcpSocket::connected, this, &PeerClient::onConnected);
 	connect(m_socket, &QTcpSocket::readyRead, this, &PeerClient::onReadyRead);
+	connect(m_socket, &QTcpSocket::disconnected, this, &PeerClient::onDisconnected);
 	connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
 		this, SLOT(onSocketError(QAbstractSocket::SocketError)));
 
@@ -46,13 +47,21 @@ void PeerClient::stop()
 
 void PeerClient::onConnected()
 {
-	RegisterPeer regPeer;
+	// 生成 UUID 字符串
 	QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+	// 构造 RegisterPeer 消息
+	RegisterPeer regPeer;
 	regPeer.set_uuid(uuidStr.toStdString());
+
+	// 构造外层的 RendezvousMessage 并设置 oneof 字段 register_peer
+	RendezvousMessage msg;
+	// 使用 mutable_register_peer() 获取指针并赋值
+	*msg.mutable_register_peer() = regPeer;
 
 	// 序列化消息
 	std::string outStr;
-	if (!regPeer.SerializeToString(&outStr)) {
+	if (!msg.SerializeToString(&outStr)) {
 		emit errorOccurred("Serialization failed");
 		return;
 	}
@@ -90,4 +99,10 @@ void PeerClient::onSocketError(QAbstractSocket::SocketError error)
 {
 	Q_UNUSED(error);
 	emit errorOccurred(m_socket->errorString());
+}
+
+
+void PeerClient::onDisconnected()
+{
+	emit errorOccurred("Disconnected from server");
 }

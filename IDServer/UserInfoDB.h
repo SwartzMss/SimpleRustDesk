@@ -8,6 +8,7 @@
 struct UserInfo {
 	std::string UUID;
 	std::string IP;
+	std::string LastRegTime;
 };
 
 class UserInfoDB {
@@ -24,7 +25,7 @@ public:
 private:
 	sqlite3* db;
 	std::string dbPath;
-
+	bool purgeOldRecords();
 	bool execute(const std::string& sql);
 	bool prepareStatement(const std::string& sql, sqlite3_stmt** stmt);
 };

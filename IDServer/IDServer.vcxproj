@@ -63,7 +63,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
@@ -71,8 +71,6 @@
   <ItemGroup>
     <ClCompile Include="LogWidget.cpp" />
     <ClCompile Include="MessageProcessor.cpp" />
-    <ClCompile Include="peer.cpp" />
-    <ClCompile Include="PeerManager.cpp" />
     <ClCompile Include="RendezvousServer.cpp" />
     <ClCompile Include="UserInfoDB.cpp" />
     <QtRcc Include="IDServer.qrc" />
@@ -84,8 +82,6 @@
   <ItemGroup>
     <QtMoc Include="RendezvousServer.h" />
     <QtMoc Include="MessageProcessor.h" />
-    <ClInclude Include="Peer.h" />
-    <ClInclude Include="PeerManager.h" />
     <QtMoc Include="LogWidget.h" />
     <ClInclude Include="UserInfoDB.h" />
   </ItemGroup>

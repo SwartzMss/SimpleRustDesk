@@ -18,11 +18,14 @@ public:
 	bool start(quint16 port);
 	// 停止服务器
 	void stop();
+
+
 signals:
-	// 由 MessageProcessor 发出的回复数据，通过本信号发送出去
-	void sendResponse(const QByteArray& data, QTcpSocket* tcpSocket, bool isUDP,
-		const QHostAddress& sender, quint16 senderPort);
+	void registrationSuccess(const QString& uuid, const QString& ip);
+	void connectionDisconnected(const QString& uuid);
+
 private slots:
+	void handleSendResponse(QTcpSocket* tcpSocket, const QByteArray& data);
 	void onNewTcpConnection();
 	void onTcpReadyRead(QTcpSocket* socket);
 	void onTcpDisconnected(QTcpSocket* socket);
