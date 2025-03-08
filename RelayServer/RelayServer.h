@@ -5,6 +5,7 @@
 #include <QtCore/QMap>
 #include "ui_RelayServer.h"
 #include "ConnectionHandler.h"
+#include "UdpHeartbeatServer.h" 
 
 class RelayServer : public QWidget
 {
@@ -29,4 +30,5 @@ private:
 	QTcpServer m_server;
 	// 存储待匹配的连接，key 为 uuid 或其他标识符
 	QMap<QString, std::shared_ptr<ConnectionHandler>> mPeers;
+	UdpHeartbeatServer* m_udpHeartbeatServer;
 };

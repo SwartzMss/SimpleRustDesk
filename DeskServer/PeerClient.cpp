@@ -5,6 +5,10 @@
 PeerClient::PeerClient(QObject* parent)
 	: QObject(parent), m_socket(nullptr), m_serverPort(0)
 {
+	m_reconnectTimer = new QTimer(this);
+	m_reconnectTimer->setInterval(3000);  // 每 3 秒重连一次
+	m_reconnectTimer->setSingleShot(true);
+	connect(m_reconnectTimer, &QTimer::timeout, this, &PeerClient::attemptReconnect);
 }
 
 PeerClient::~PeerClient()
@@ -12,11 +16,13 @@ PeerClient::~PeerClient()
 	stop();
 }
 
-bool PeerClient::start(const QHostAddress& address, quint16 port)
-{
-	m_serverAddress = address;
-	m_serverPort = port;
 
+void PeerClient::doConnect()
+{
+	if (m_socket) {
+		m_socket->deleteLater();
+		m_socket = nullptr;
+	}
 	m_socket = new QTcpSocket(this);
 	connect(m_socket, &QTcpSocket::connected, this, &PeerClient::onConnected);
 	connect(m_socket, &QTcpSocket::readyRead, this, &PeerClient::onReadyRead);
@@ -24,20 +30,25 @@ bool PeerClient::start(const QHostAddress& address, quint16 port)
 	connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
 		this, SLOT(onSocketError(QAbstractSocket::SocketError)));
 
+	LogWidget::instance()->addLog(QString("Trying to connect to %1:%2")
+		.arg(m_serverAddress.toString()).arg(m_serverPort), LogWidget::Info);
 	m_socket->connectToHost(m_serverAddress, m_serverPort);
-	if (!m_socket->waitForConnected(3000)) {
-		LogWidget::instance()->addLog(QString("Connection failed: %1").arg(m_socket->errorString()), LogWidget::Warning);
-		return false;
-	}
-	else 
-	{
-		LogWidget::instance()->addLog(" Connected successfully", LogWidget::Info);
-		return true;
-	}
+}
+
+void PeerClient::start(const QHostAddress& address, quint16 port)
+{
+	m_serverAddress = address;
+	m_serverPort = port;
+	m_isStopping = false;
+
+	doConnect();
 }
 
 void PeerClient::stop()
 {
+	m_isStopping = true;
+	if (m_reconnectTimer->isActive())
+		m_reconnectTimer->stop();
 	if (m_socket) {
 		m_socket->disconnectFromHost();
 		m_socket->deleteLater();
@@ -47,30 +58,26 @@ void PeerClient::stop()
 
 void PeerClient::onConnected()
 {
-	// 生成 UUID 字符串
-	QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	m_reconnectTimer->stop();
+	LogWidget::instance()->addLog("Connected successfully", LogWidget::Info);
 
-	// 构造 RegisterPeer 消息
+	// 生成 UUID 字符串并发送 RegisterPeer 消息
+	static QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	RegisterPeer regPeer;
 	regPeer.set_uuid(uuidStr.toStdString());
 
-	// 构造外层的 RendezvousMessage 并设置 oneof 字段 register_peer
 	RendezvousMessage msg;
-	// 使用 mutable_register_peer() 获取指针并赋值
 	*msg.mutable_register_peer() = regPeer;
 
-	// 序列化消息
 	std::string outStr;
 	if (!msg.SerializeToString(&outStr)) {
 		emit errorOccurred("Serialization failed");
 		return;
 	}
 	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
-
-	// 发送消息
 	m_socket->write(data);
 	m_socket->flush();
-	LogWidget::instance()->addLog(QString(" Sent RegisterPeer message with uuid %1").arg(uuidStr), LogWidget::Info);
+	LogWidget::instance()->addLog(QString("Sent RegisterPeer message with uuid %1").arg(uuidStr), LogWidget::Info);
 }
 
 void PeerClient::onReadyRead()
@@ -98,11 +105,26 @@ void PeerClient::onReadyRead()
 void PeerClient::onSocketError(QAbstractSocket::SocketError error)
 {
 	Q_UNUSED(error);
+	if (!m_isStopping) {
+		m_reconnectTimer->start();
+	}
 	emit errorOccurred(m_socket->errorString());
 }
 
 
 void PeerClient::onDisconnected()
 {
+	if (!m_isStopping) {
+		// 断开后启动重连
+		m_reconnectTimer->start();
+	}
 	emit errorOccurred("Disconnected from server");
+}
+
+void PeerClient::attemptReconnect()
+{
+	if (!m_isStopping) {
+		LogWidget::instance()->addLog("Attempting to reconnect...", LogWidget::Info);
+		doConnect();
+	}
 }

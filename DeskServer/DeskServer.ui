@@ -10,13 +10,25 @@
     <height>256</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>558</width>
+    <height>256</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>558</width>
+    <height>256</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>DeskServer</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,3">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1,6">
    <item>
     <widget class="QWidget" name="widget" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="2,13,1,2,8,6,1,4,1,1">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
@@ -32,22 +44,9 @@
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_4">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>7</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
        <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Port :</string>
+         <string>Port:</string>
         </property>
        </widget>
       </item>
@@ -59,42 +58,43 @@
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>58</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="startButton_">
+       <widget class="QLabel" name="label_10">
         <property name="text">
-         <string>Start</string>
+         <string>Relay IP ：</string>
         </property>
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
+       <widget class="QLineEdit" name="iPLineEdit_3">
+        <property name="text">
+         <string>127.0.0.1</string>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>37</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
+       </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="stopButton_">
+       <widget class="QLabel" name="label_11">
         <property name="text">
-         <string>Stop</string>
+         <string>Relay Port:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="portLineEdit_2">
+        <property name="text">
+         <string>21117</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="widget_3" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="startButton_">
+        <property name="text">
+         <string>Start</string>
         </property>
        </widget>
       </item>
@@ -105,7 +105,61 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>7</width>
+          <width>49</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>IDServer Status :</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Offline</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>49</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_9">
+        <property name="text">
+         <string>Relay Status :</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>Offline</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>49</width>
           <height>20</height>
          </size>
         </property>

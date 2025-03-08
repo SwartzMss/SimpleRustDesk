@@ -46,6 +46,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>..\Depend\RendezvousProto\include;..\Depend\sqlite3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>sqlite3.lib;Qt6Network.lib;RendezvousProto.lib;libprotobuf.lib;%(AdditionalDependencies)</AdditionalDependencies>

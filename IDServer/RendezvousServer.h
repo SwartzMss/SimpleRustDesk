@@ -7,13 +7,14 @@
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QHostAddress>
 #include <QHash>
+#include "UserInfoDB.h"
 #include "MessageProcessor.h"
 
 
 class RendezvousServer : public QObject {
 	Q_OBJECT
 public:
-	explicit RendezvousServer(QObject* parent = nullptr);
+	explicit RendezvousServer(const std::shared_ptr<UserInfoDB> db,QObject* parent = nullptr);
 	// 动态启动服务器，指定监听端口，返回是否启动成功
 	bool start(quint16 port);
 	// 停止服务器

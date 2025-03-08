@@ -3,10 +3,10 @@
 #include <QtNetwork/QHostAddress>
 #include "LogWidget.h"
 
-RendezvousServer::RendezvousServer(QObject* parent)
+RendezvousServer::RendezvousServer(const std::shared_ptr<UserInfoDB> db, QObject* parent)
 	: QObject(parent) , tcpServer(nullptr)
 {
-	msgProcessor = new MessageProcessor(this);
+	msgProcessor = new MessageProcessor(db,this);
 
 	connect(msgProcessor, &MessageProcessor::sendResponse,
 		this, &RendezvousServer::handleSendResponse);
@@ -77,7 +77,7 @@ void RendezvousServer::onTcpReadyRead(QTcpSocket* socket) {
 void RendezvousServer::onTcpDisconnected(QTcpSocket* socket) {
 	QString peerAddr = socket->peerAddress().toString() + ":" + QString::number(socket->peerPort());
 	socket->deleteLater();
-	LogWidget::instance()->addLog(QString(" TCP connection disconnected from : %1").arg(peerAddr), LogWidget::Info);
+	LogWidget::instance()->addLog(QString("TCP connection disconnected from : %1").arg(peerAddr), LogWidget::Info);
 	QVariant uuidVar = socket->property("uuid");
 	if (uuidVar.isValid())
 	{

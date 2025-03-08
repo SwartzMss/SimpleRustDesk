@@ -58,10 +58,18 @@ void RelayServer::start()
 			LogWidget::instance()->addLog("Server start failed", LogWidget::Error);
 			return;
 		}
-		LogWidget::instance()->addLog(QString("Server start succeed on port %1").arg(port), LogWidget::Info);
+		LogWidget::instance()->addLog(QString("Tcp Server start succeed on port %1").arg(port), LogWidget::Info);
 		ui.startButton_->setEnabled(false);
 		ui.stopButton_->setEnabled(true);
 		ui.lineEdit->setEnabled(false);
+
+		m_udpHeartbeatServer = new UdpHeartbeatServer(this);
+		if (!m_udpHeartbeatServer->start(port)) {
+			LogWidget::instance()->addLog("Failed to start UDP Heartbeat Server", LogWidget::Error);
+		}
+		else {
+			LogWidget::instance()->addLog("UDP Heartbeat Server started on port 21117", LogWidget::Info);
+		}
 	}
 	else
 	{
@@ -81,6 +89,12 @@ void RelayServer::stop()
 
 	// 清空等待列表
 	mPeers.clear();
+
+	if (m_udpHeartbeatServer) {
+		m_udpHeartbeatServer->deleteLater();
+		m_udpHeartbeatServer = nullptr;
+	}
+
 
 	ui.stopButton_->setEnabled(false);
 	ui.startButton_->setEnabled(true);

@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QHostAddress>
+#include <QTimer>
 #include "rendezvous.pb.h"
 
 class PeerClient : public QObject {
@@ -12,7 +13,7 @@ public:
 	~PeerClient();
 
 	// 启动连接，传入服务器 IP 和端口
-	bool start(const QHostAddress& address, quint16 port);
+	void start(const QHostAddress& address, quint16 port);
 	// 停止连接
 	void stop();
 
@@ -27,11 +28,17 @@ private slots:
 	void onReadyRead();
 	void onSocketError(QAbstractSocket::SocketError error);
 	void onDisconnected();
+	void attemptReconnect();
 
+private:
+	void doConnect();
 
 private:
 	QTcpSocket* m_socket;
 	QHostAddress m_serverAddress;
 	quint16 m_serverPort;
+	QTimer* m_reconnectTimer;
+	bool m_isStopping;  // 标记是否为主动停止
+
 };
 

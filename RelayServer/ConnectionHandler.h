@@ -43,7 +43,6 @@ private slots:
 private:
 	QTcpSocket m_socket;
 	QTimer m_timer;
-	QByteArray m_buffer;
 	// 配对的对端连接
 	std::shared_ptr<ConnectionHandler> m_peer;
 

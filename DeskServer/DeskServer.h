@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "ui_DeskServer.h"
 #include "PeerClient.h"
+#include "RelayPeerClient.h"  
 
 
 class DeskServer : public QWidget
@@ -15,11 +16,14 @@ public:
 
 private slots:
 	void onStartClicked();
-	void onStopClicked();
 	void onRegistrationResult(int result);
 	void onClientError(const QString& errorString);
 
 private:
+	void updateStatus(bool online);
+
+private:
 	Ui::DeskServerClass ui;
 	PeerClient* m_peerClient;
+	RelayPeerClient* m_relayPeerClient;
 };

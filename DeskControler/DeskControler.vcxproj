@@ -41,6 +41,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
   </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>..\Depend\RendezvousProto\lib;..\Depend\protobuf\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -58,11 +68,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MessageHandler.cpp" />
+    <ClCompile Include="NetworkManager.cpp" />
     <QtRcc Include="DeskControler.qrc" />
     <QtUic Include="DeskControler.ui" />
     <QtMoc Include="DeskControler.h" />
     <ClCompile Include="DeskControler.cpp" />
+    <ClCompile Include="LogWidget.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="LogWidget.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="MessageHandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="NetworkManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

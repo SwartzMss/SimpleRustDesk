@@ -7,21 +7,41 @@ message RequestRelay {
 }
 
 message RegisterPeer {
-  bytes uuid = 2;
+  bytes uuid = 1;
 }
 
 message RegisterPeerResponse {
   enum Result {
     OK = 0;
-    SERVER_ERROR = 7;
+    SERVER_ERROR = 1;
   }
   Result result = 1;
 }
+
+message PunchHoleRequest { 
+   bytes uuid = 1;
+}
+
+message PunchHoleResponse {
+  enum Result {
+    OK = 0;
+    ID_NOT_EXIST = 1;
+    OFFLINE = 2;
+  }
+  string relay_server = 1;
+  int32 relay_port = 2;
+  Result result = 3;
+}
+message Heartbeat {}
+
 
 message RendezvousMessage {
   oneof union {
     RequestRelay request_relay = 1;
     RegisterPeer register_peer = 2;
     RegisterPeerResponse register_peer_response = 3;
+    PunchHoleRequest punch_hole_request = 4;
+    PunchHoleResponse punch_hole_response = 5;
+    Heartbeat heartbeat = 6;
   }
 }

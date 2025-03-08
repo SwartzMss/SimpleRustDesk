@@ -6,7 +6,7 @@
 #include "LogWidget.h"
 
 IDServer::IDServer(QWidget* parent)
-	: QWidget(parent), userInfoDB("userinfo.db"), model(new QStandardItemModel(this))
+	: QWidget(parent), model(new QStandardItemModel(this))
 {
 	ui.setupUi(this);
 	LogWidget::instance()->init(ui.logWidget_);
@@ -15,9 +15,11 @@ IDServer::IDServer(QWidget* parent)
 	connect(ui.stopButton_, &QPushButton::clicked, this, &IDServer::onStopClicked);
 	ui.tableView->setModel(model);
 
-	server_ = new RendezvousServer;
-
 	ui.stopButton_->setEnabled(false);
+
+	userInfoDB = std::make_shared<UserInfoDB>("userinfo.db");
+
+	server_ = new RendezvousServer(userInfoDB);
 
 	connect(server_, &RendezvousServer::registrationSuccess, this, &IDServer::onRegistrationSuccess);
 	connect(server_, &RendezvousServer::connectionDisconnected, this, &IDServer::onConnectionDisconnected);
@@ -25,6 +27,8 @@ IDServer::IDServer(QWidget* parent)
 
 IDServer::~IDServer()
 {
+	userInfoDB->close();
+
 }
 
 
@@ -35,8 +39,8 @@ void IDServer::onRegistrationSuccess(const QString& uuid, const QString& ip)
 	userInfo.IP = ip.toStdString();
 	userInfo.LastRegTime = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
 	LogWidget::instance()->addLog( QString("Registration successful: %1, IP %2 ").arg(uuid).arg(ip), LogWidget::Info);
-	if (!userInfoDB.createOrUpdate(userInfo)) {
-		LogWidget::instance()->addLog(QString("failed to write to database").arg(uuid).arg(ip), LogWidget::Error);
+	if (!userInfoDB->createOrUpdate(userInfo)) {
+		LogWidget::instance()->addLog("failed to write to database", LogWidget::Error);
 	}
 
 	// 更新UI的表格，先判断是否已存在该 uuid
@@ -83,9 +87,8 @@ void IDServer::onConnectionDisconnected(const QString& uuid)
 
 void IDServer::onStartClicked()
 {
-	if (!userInfoDB.open()) {
-		LogWidget::instance()->addLog(QString("Failed to open database"), LogWidget::Error);
-		return;
+	if (!userInfoDB->open()) {
+		LogWidget::instance()->addLog("Failed to open database", LogWidget::Error);
 	}
 
 	QString text = ui.lineEdit->text();
@@ -108,7 +111,7 @@ void IDServer::onStartClicked()
 	ui.lineEdit->setEnabled(false);
 
 	// 获取所有用户信息
-	std::vector<UserInfo> userInfos = userInfoDB.getAllUserInfo();
+	std::vector<UserInfo> userInfos = userInfoDB->getAllUserInfo();
 
 	if (userInfos.size() == 0)
 	{
@@ -140,8 +143,7 @@ void IDServer::onStartClicked()
 
 void IDServer::onStopClicked()
 {
-	userInfoDB.close();
-
+	userInfoDB->close();
 	ui.startButton_->setEnabled(true);
 	ui.stopButton_->setEnabled(false);
 	ui.lineEdit->setEnabled(true);

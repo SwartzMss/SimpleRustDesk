@@ -23,7 +23,7 @@ private slots:
 
 private:
     Ui::IDServerClass ui;
-    UserInfoDB userInfoDB;
+    std::shared_ptr<UserInfoDB> userInfoDB;
     QStandardItemModel* model;
     RendezvousServer* server_;
 };

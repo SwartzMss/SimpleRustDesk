@@ -70,6 +70,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="UdpHeartbeatServer.cpp" />
     <QtRcc Include="RelayServer.qrc" />
     <QtUic Include="RelayServer.ui" />
     <QtMoc Include="RelayServer.h" />
@@ -85,6 +86,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ConnectionHandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="UdpHeartbeatServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

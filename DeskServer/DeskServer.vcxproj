@@ -46,6 +46,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;..\Depend\protobuf\lib;..\Depend\RendezvousProto\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -70,6 +71,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="PeerClient.cpp" />
+    <ClCompile Include="RelayPeerClient.cpp" />
     <QtRcc Include="DeskServer.qrc" />
     <QtUic Include="DeskServer.ui" />
     <QtMoc Include="DeskServer.h" />
@@ -82,6 +84,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="PeerClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="RelayPeerClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
