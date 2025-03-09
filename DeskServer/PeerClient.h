@@ -16,6 +16,10 @@ public:
 	void start(const QHostAddress& address, quint16 port);
 	// 停止连接
 	void stop();
+	// 设置 relay 信息
+	void setRelayInfo(const QString& ip, int port);
+
+	void setRelayStatus(bool isOnline);
 
 signals:
 	// 注册结果信号，返回 RegisterPeerResponse::Result 枚举值
@@ -40,6 +44,9 @@ private:
 	QTimer* m_reconnectTimer;
 	bool m_isStopping;  // 标记是否为主动停止
 	bool m_connected;
+	bool m_isRelayOnline;
+	QString m_relayIP;
+	int m_relayPort;
 
 };
 

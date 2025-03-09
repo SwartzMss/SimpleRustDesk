@@ -3,7 +3,7 @@
 #include <QUuid>
 
 PeerClient::PeerClient(QObject* parent)
-	: QObject(parent), m_socket(nullptr), m_serverPort(0), m_connected(false)
+	: QObject(parent), m_socket(nullptr), m_serverPort(0), m_connected(false), m_isRelayOnline(false)
 {
 	m_reconnectTimer = new QTimer(this);
 	m_reconnectTimer->setInterval(3000);  // 每 3 秒重连一次
@@ -16,6 +16,15 @@ PeerClient::~PeerClient()
 	stop();
 }
 
+void PeerClient::setRelayStatus(bool isOnline)
+{
+	m_isRelayOnline = isOnline;
+}
+
+void PeerClient::setRelayInfo(const QString& ip, int port) {
+	m_relayIP = ip;
+	m_relayPort = port;
+}
 
 void PeerClient::doConnect()
 {
@@ -86,24 +95,60 @@ void PeerClient::onConnected()
 void PeerClient::onReadyRead()
 {
 	QByteArray data = m_socket->readAll();
-
-	// 解析收到的数据为 RegisterPeerResponse
-	RegisterPeerResponse response;
-	if (!response.ParseFromArray(data.data(), data.size())) {
-		emit errorOccurred("Failed to parse response");
+	RendezvousMessage msg;
+	if (!msg.ParseFromArray(data.data(), data.size())) {
+		emit errorOccurred("Failed to parse RendezvousMessage");
 		return;
 	}
-	if (response.result() == RegisterPeerResponse::OK) {
-		emit registrationResult(RegisterPeerResponse::OK);
+
+	if (msg.has_register_peer_response()) {
+		// 原来的注册处理逻辑
+		RegisterPeerResponse response = msg.register_peer_response();
+		if (response.result() == RegisterPeerResponse::OK) {
+			emit registrationResult(RegisterPeerResponse::OK);
+		}
+		else if (response.result() == RegisterPeerResponse::SERVER_ERROR) {
+			emit registrationResult(RegisterPeerResponse::SERVER_ERROR);
+		}
+		else {
+			emit registrationResult(response.result());
+		}
 	}
-	else if (response.result() == RegisterPeerResponse::SERVER_ERROR) {
-		emit registrationResult(RegisterPeerResponse::SERVER_ERROR);
+	else if (msg.has_punch_hole()) {
+		// 收到来自 TCP 的 PunchHole 消息
+		LogWidget::instance()->addLog("Received PunchHole message from server", LogWidget::Info);
+
+		// 构造 PunchHoleSent 消息，填充所需字段（这里的 relay_server 和 relay_port 可根据实际情况设置）
+		PunchHoleSent sent;
+		if (!m_isRelayOnline)
+		{
+			sent.set_result(PunchHoleSent::ERR);
+		}
+		else
+		{
+			sent.set_relay_server(m_relayIP.toStdString());
+			sent.set_relay_port(m_relayPort);
+			sent.set_result(PunchHoleSent::OK);
+		}
+
+		// 将 PunchHoleSent 消息嵌入到 RendezvousMessage 中
+		RendezvousMessage reply;
+		*reply.mutable_punch_hole_sent() = sent;
+
+		std::string outStr;
+		if (!reply.SerializeToString(&outStr)) {
+			emit errorOccurred("Failed to serialize PunchHoleSent message");
+			return;
+		}
+		m_socket->write(outStr.data(), outStr.size());
+		m_socket->flush();
+		LogWidget::instance()->addLog("Sent PunchHoleSent message in response", LogWidget::Info);
 	}
 	else {
-		qDebug() << "Unknown registration result:" << response.result();
-		emit registrationResult(response.result());
+		LogWidget::instance()->addLog("Received unknown message type", LogWidget::Warning);
 	}
 }
+
 
 void PeerClient::onSocketError(QAbstractSocket::SocketError error)
 {

@@ -26,16 +26,19 @@ signals:
 	void connectionDisconnected(const QString& uuid);
 
 private slots:
-	void handleSendResponse(QTcpSocket* tcpSocket, const QByteArray& data);
 	void onNewTcpConnection();
 	void onTcpReadyRead(QTcpSocket* socket);
 	void onTcpDisconnected(QTcpSocket* socket);
+	void handlePunchHoleRequest(const PunchHoleRequest& req, QTcpSocket* socket);
+	void handleRegisterPeer(const RegisterPeer& req, QTcpSocket* socket);
+	void handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket* socket);
 
 private:
 	QTcpServer* tcpServer;
-	// 保存 TCP 连接（用于打孔时转发 RelayResponse），key 为 "ip:port"
 	QHash<QString, QTcpSocket*> tcpPunchMap;
 	MessageProcessor* msgProcessor;
+	std::shared_ptr<UserInfoDB> userInfoDB;
+
 };
 
 #endif // RENDEZVOUSSERVER_H

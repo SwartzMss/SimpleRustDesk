@@ -34,6 +34,20 @@ message PunchHoleResponse {
 }
 message Heartbeat {}
 
+message PunchHole { 
+
+}
+
+message PunchHoleSent {
+   enum Result {
+    OK = 0;
+    ERR = 1;
+  }
+  string relay_server = 1;
+  int32 relay_port = 2;
+  Result result = 3;
+}
+
 
 message RendezvousMessage {
   oneof union {
@@ -43,5 +57,8 @@ message RendezvousMessage {
     PunchHoleRequest punch_hole_request = 4;
     PunchHoleResponse punch_hole_response = 5;
     Heartbeat heartbeat = 6;
+    PunchHole punch_hole = 7;
+    PunchHoleSent punch_hole_sent = 8;
+
   }
 }

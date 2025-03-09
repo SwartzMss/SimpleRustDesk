@@ -6,10 +6,19 @@
 RendezvousServer::RendezvousServer(const std::shared_ptr<UserInfoDB> db, QObject* parent)
 	: QObject(parent) , tcpServer(nullptr)
 {
-	msgProcessor = new MessageProcessor(db,this);
+	msgProcessor = new MessageProcessor(this);
 
-	connect(msgProcessor, &MessageProcessor::sendResponse,
-		this, &RendezvousServer::handleSendResponse);
+	connect(msgProcessor, &MessageProcessor::registerPeer,
+		this, &RendezvousServer::handleRegisterPeer);
+
+	connect(msgProcessor, &MessageProcessor::punchHoleRequest,
+		this, &RendezvousServer::handlePunchHoleRequest);
+
+	connect(msgProcessor, &MessageProcessor::punchHoleSent,
+		this, &RendezvousServer::handlePunchHoleSent);
+	
+
+	userInfoDB = db;	   
 }
 
 bool RendezvousServer::start(quint16 port) {
@@ -35,27 +44,78 @@ void RendezvousServer::stop() {
 	tcpPunchMap.clear();
 }
 
+void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpSocket* socket)
+{
+	QString uuid = QString::fromUtf8(req.uuid().data(), req.uuid().size());
 
-void RendezvousServer::handleSendResponse(QTcpSocket* tcpSocket, const QByteArray& data) {
-
-	tcpSocket->write(data);
-
-	// 解析返回的数据
-	RendezvousMessage msg;
-	if (msg.ParseFromArray(data.data(), data.size())) {
-		if (msg.has_register_peer_response() &&
-			msg.register_peer_response().result() == RegisterPeerResponse::OK) {
-			// 假设在处理注册时已把 uuid 存入了 socket 的属性中
-			QVariant uuidVar = tcpSocket->property("uuid");
-			if (uuidVar.isValid()) {
-				QString uuid = uuidVar.toString();
-				QString ip = tcpSocket->peerAddress().toString();
-				tcpPunchMap.insert(uuid, tcpSocket);
-				// 发射信号，通知上层处理数据库和UI更新
-				emit registrationSuccess(uuid, ip);
-			}
+	bool idExists = false;
+	auto allUsers = userInfoDB->getAllUserInfo();
+	for (const auto& user : allUsers) {
+		if (QString::fromStdString(user.UUID) == uuid) {
+			idExists = true;
+			break;
 		}
 	}
+
+	bool isOnline = tcpPunchMap.find(uuid) != tcpPunchMap.end();
+
+	if (!idExists || !isOnline) {
+
+		PunchHoleResponse response;
+		if (!idExists)
+		{
+			response.set_result(PunchHoleResponse::ID_NOT_EXIST);
+		}
+		else
+		{
+			response.set_result(PunchHoleResponse::OFFLINE);
+		}
+
+		RendezvousMessage msg;
+		msg.mutable_punch_hole_response()->CopyFrom(response);
+
+		QByteArray out;
+		out.resize(msg.ByteSizeLong());
+		msg.SerializeToArray(out.data(), out.size());
+		socket->write(out);
+	}
+	else{
+
+		PunchHole punchHole;
+		RendezvousMessage msg;
+		msg.mutable_punch_hole()->CopyFrom(punchHole);
+
+		QByteArray out;
+		out.resize(msg.ByteSizeLong());
+		msg.SerializeToArray(out.data(), out.size());
+		QTcpSocket* socket = tcpPunchMap.value(uuid);
+		socket->write(out);
+	}
+
+}
+
+void RendezvousServer::handleRegisterPeer(const RegisterPeer& req, QTcpSocket* socket)
+{
+	QString uuid = QString::fromUtf8(req.uuid().data(), req.uuid().size());
+
+	RegisterPeerResponse response;
+	response.set_result(RegisterPeerResponse::OK);
+	RendezvousMessage msg;
+	msg.mutable_register_peer_response()->CopyFrom(response);
+	QByteArray out;
+	out.resize(msg.ByteSizeLong());
+	msg.SerializeToArray(out.data(), out.size());
+
+	QString ip = socket->peerAddress().toString();
+	tcpPunchMap.insert(uuid, socket);
+	socket->write(out);
+	// 发射信号，通知上层处理数据库和UI更新
+	emit registrationSuccess(uuid, ip);
+}
+
+void RendezvousServer::handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket* socket)
+{
+	LogWidget::instance()->addLog("handlePunchHoleSent", LogWidget::Info);
 }
 
 void RendezvousServer::onNewTcpConnection() {

@@ -41,6 +41,7 @@ void DeskServer::onStartClicked()
 		}
 
 		m_peerClient = new PeerClient(this);
+		m_peerClient->setRelayInfo(relayIP, relayPort);
 		connect(m_peerClient, &PeerClient::registrationResult, this, &DeskServer::onRegistrationResult);
 		connect(m_peerClient, &PeerClient::errorOccurred, this, &DeskServer::onClientError);
 		m_peerClient->start(QHostAddress(ip), static_cast<quint16>(port));
@@ -53,11 +54,13 @@ void DeskServer::onStartClicked()
 		m_relayPeerClient = new RelayPeerClient(this);
 		// 当收到 heartbeat 回复时，更新 Relay 状态为 Online
 		connect(m_relayPeerClient, &RelayPeerClient::heartbeatResponseReceived, this, [this]() {
+			m_peerClient->setRelayStatus(true);
 			ui.label_8->setText("Online");
 			});
 		// 当出现错误时，记录错误并可将状态设置为 Offline
 		connect(m_relayPeerClient, &RelayPeerClient::errorOccurred, this, [this](const QString& errorString) {
 			ui.label_8->setText("Offline");
+			m_peerClient->setRelayStatus(false);
 			LogWidget::instance()->addLog(errorString, LogWidget::Warning);
 			});
 		m_relayPeerClient->start(QHostAddress(relayIP), static_cast<quint16>(relayPort));
