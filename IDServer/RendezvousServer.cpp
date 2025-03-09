@@ -48,6 +48,10 @@ void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpS
 {
 	QString uuid = QString::fromUtf8(req.uuid().data(), req.uuid().size());
 
+	QString id = QString::fromUtf8(req.id().data(), req.id().size());
+
+	tcpPunchMap.insert(id, socket);
+
 	bool idExists = false;
 	auto allUsers = userInfoDB->getAllUserInfo();
 	for (const auto& user : allUsers) {
@@ -82,6 +86,7 @@ void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpS
 	else{
 
 		PunchHole punchHole;
+		punchHole.set_id(id.toUtf8().constData(), id.toUtf8().size());
 		RendezvousMessage msg;
 		msg.mutable_punch_hole()->CopyFrom(punchHole);
 
@@ -109,13 +114,34 @@ void RendezvousServer::handleRegisterPeer(const RegisterPeer& req, QTcpSocket* s
 	QString ip = socket->peerAddress().toString();
 	tcpPunchMap.insert(uuid, socket);
 	socket->write(out);
+	socket->setProperty("uuid", uuid);
 	// 发射信号，通知上层处理数据库和UI更新
 	emit registrationSuccess(uuid, ip);
 }
 
 void RendezvousServer::handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket* socket)
 {
-	LogWidget::instance()->addLog("handlePunchHoleSent", LogWidget::Info);
+	QString id = QString::fromStdString(req.id());
+	auto it = tcpPunchMap.find(id);
+	if (it != tcpPunchMap.end()) {
+		QTcpSocket* socket = it.value();
+
+		PunchHoleResponse response;
+		response.set_relay_port(req.relay_port());
+		response.set_result(PunchHoleResponse::OK);
+		response.set_relay_server(req.relay_server());
+
+		RendezvousMessage msg;
+		msg.mutable_punch_hole_response()->CopyFrom(response);
+
+		QByteArray out;
+		out.resize(msg.ByteSizeLong());
+		msg.SerializeToArray(out.data(), out.size());
+		socket->write(out);
+	}
+	else {
+		LogWidget::instance()->addLog("PunchHoleSent would be dropped", LogWidget::Warning);
+	}
 }
 
 void RendezvousServer::onNewTcpConnection() {

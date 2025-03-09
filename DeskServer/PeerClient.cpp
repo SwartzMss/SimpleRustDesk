@@ -120,6 +120,7 @@ void PeerClient::onReadyRead()
 
 		// 构造 PunchHoleSent 消息，填充所需字段（这里的 relay_server 和 relay_port 可根据实际情况设置）
 		PunchHoleSent sent;
+		sent.set_id(msg.punch_hole().id());
 		if (!m_isRelayOnline)
 		{
 			sent.set_result(PunchHoleSent::ERR);

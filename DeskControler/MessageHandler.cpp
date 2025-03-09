@@ -1,5 +1,5 @@
 #include "MessageHandler.h"
-#include <QDebug>
+#include <QUuid>
 
 MessageHandler::MessageHandler(QObject* parent)
 	: QObject(parent)
@@ -12,11 +12,14 @@ MessageHandler::~MessageHandler()
 
 QByteArray MessageHandler::createPunchHoleRequestMessage(const QString& uuid)
 {
+	static QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	currentUuid = uuid;
 
 	PunchHoleRequest request;
 	// 设置 uuid 字段（转换为字节数据）
 	request.set_uuid(uuid.toUtf8().constData(), uuid.toUtf8().size());
+
+	request.set_id(uuidStr.toUtf8().constData(), uuidStr.toUtf8().size());
 
 	RendezvousMessage msg;
 	msg.mutable_punch_hole_request()->CopyFrom(request);

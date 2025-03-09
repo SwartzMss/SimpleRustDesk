@@ -20,6 +20,7 @@ message RegisterPeerResponse {
 
 message PunchHoleRequest { 
    bytes uuid = 1;
+   bytes id = 2;
 }
 
 message PunchHoleResponse {
@@ -35,7 +36,7 @@ message PunchHoleResponse {
 message Heartbeat {}
 
 message PunchHole { 
-
+     bytes id = 1;
 }
 
 message PunchHoleSent {
@@ -46,6 +47,7 @@ message PunchHoleSent {
   string relay_server = 1;
   int32 relay_port = 2;
   Result result = 3;
+  bytes id = 4;
 }
 
 
