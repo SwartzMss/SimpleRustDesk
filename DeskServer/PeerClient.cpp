@@ -3,7 +3,7 @@
 #include <QUuid>
 
 PeerClient::PeerClient(QObject* parent)
-	: QObject(parent), m_socket(nullptr), m_serverPort(0)
+	: QObject(parent), m_socket(nullptr), m_serverPort(0), m_connected(false)
 {
 	m_reconnectTimer = new QTimer(this);
 	m_reconnectTimer->setInterval(3000);  // 每 3 秒重连一次
@@ -33,6 +33,7 @@ void PeerClient::doConnect()
 	LogWidget::instance()->addLog(QString("Trying to connect to %1:%2")
 		.arg(m_serverAddress.toString()).arg(m_serverPort), LogWidget::Info);
 	m_socket->connectToHost(m_serverAddress, m_serverPort);
+	m_reconnectTimer->start();
 }
 
 void PeerClient::start(const QHostAddress& address, quint16 port)
@@ -40,6 +41,7 @@ void PeerClient::start(const QHostAddress& address, quint16 port)
 	m_serverAddress = address;
 	m_serverPort = port;
 	m_isStopping = false;
+	m_connected = false;
 
 	doConnect();
 }
@@ -58,6 +60,7 @@ void PeerClient::stop()
 
 void PeerClient::onConnected()
 {
+	m_connected = true;
 	m_reconnectTimer->stop();
 	LogWidget::instance()->addLog("Connected successfully", LogWidget::Info);
 
@@ -105,7 +108,7 @@ void PeerClient::onReadyRead()
 void PeerClient::onSocketError(QAbstractSocket::SocketError error)
 {
 	Q_UNUSED(error);
-	if (!m_isStopping) {
+	if (!m_isStopping && !m_connected)		{
 		m_reconnectTimer->start();
 	}
 	emit errorOccurred(m_socket->errorString());
@@ -114,6 +117,7 @@ void PeerClient::onSocketError(QAbstractSocket::SocketError error)
 
 void PeerClient::onDisconnected()
 {
+	m_connected = false;
 	if (!m_isStopping) {
 		// 断开后启动重连
 		m_reconnectTimer->start();
@@ -123,7 +127,7 @@ void PeerClient::onDisconnected()
 
 void PeerClient::attemptReconnect()
 {
-	if (!m_isStopping) {
+	if (!m_isStopping && !m_connected) {
 		LogWidget::instance()->addLog("Attempting to reconnect...", LogWidget::Info);
 		doConnect();
 	}

@@ -74,8 +74,6 @@ void RelayPeerClient::onReadyRead()
 		RendezvousMessage response;
 		if (response.ParseFromArray(datagram.data(), datagram.size())) {
 			if (response.has_heartbeat()) {
-				// 收到 Heartbeat 回复，认为 relay 在线
-				LogWidget::instance()->addLog("Received Heartbeat response, relay is online", LogWidget::Info);
 				emit heartbeatResponseReceived();
 			}
 		}

@@ -46,6 +46,8 @@ void DeskServer::onStartClicked()
 		m_peerClient->start(QHostAddress(ip), static_cast<quint16>(port));
 		ui.iPLineEdit->setEnabled(false);
 		ui.portLineEdit_->setEnabled(false);
+		ui.iPLineEdit_3->setEnabled(false);
+		ui.portLineEdit_2->setEnabled(false);
 		ui.startButton_->setText("Stop");
 
 		m_relayPeerClient = new RelayPeerClient(this);
@@ -71,6 +73,8 @@ void DeskServer::onStartClicked()
 		}
 		ui.iPLineEdit->setEnabled(true);
 		ui.portLineEdit_->setEnabled(true);
+		ui.iPLineEdit_3->setEnabled(true);
+		ui.portLineEdit_2->setEnabled(true);
 		ui.startButton_->setText("Start");
 	}
 }

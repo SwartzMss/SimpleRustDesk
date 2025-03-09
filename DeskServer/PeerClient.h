@@ -39,6 +39,7 @@ private:
 	quint16 m_serverPort;
 	QTimer* m_reconnectTimer;
 	bool m_isStopping;  // 标记是否为主动停止
+	bool m_connected;
 
 };
 
