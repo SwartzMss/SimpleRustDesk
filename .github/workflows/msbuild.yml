@@ -1,0 +1,40 @@
+name: Build and Test with Qt6 for VS2019
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  SOLUTION_FILE_PATH: SimpleRustDesk.sln
+  BUILD_CONFIGURATION: Release
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # 检出仓库代码
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 安装 Qt6.8.2（这里使用 Chocolatey 安装，注意版本号和包名需与你需求一致）
+      - name: Install Qt6.8.2 via Chocolatey
+        run: |
+          choco install qt6 --version=6.8.2 -y
+          REM 如果安装后 Qt 的 bin 目录未自动加入 PATH，这里手动添加（请根据实际安装路径调整）
+          setx PATH "%PATH%;C:\Qt\6.8.2\msvc2019_64\bin"
+
+      # 设置 MSBuild 环境（默认使用 VS2019 的 MSBuild 工具）
+      - name: Setup MSBuild (VS2019)
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      # 可选步骤：检查 MSBuild 版本，确认使用的是 VS2019 的 MSBuild
+      - name: Check MSBuild Version
+        run: msbuild -version
+
+      # 编译解决方案，使用多线程编译和指定编译配置
+      - name: Build Solution
+        run: msbuild /m /p:Configuration=${{ env.BUILD_CONFIGURATION }} ${{ env.SOLUTION_FILE_PATH }}
