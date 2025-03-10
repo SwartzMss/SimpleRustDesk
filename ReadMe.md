@@ -26,3 +26,7 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 ## 贡献
 
 欢迎各位开发者通过提交 PR 或 issue 来改进和扩展本项目。如有疑问或建议，请在 GitHub 上联系项目维护者。
+
+## 许可
+
+本项目采用 [MIT 许可](LICENSE)。
