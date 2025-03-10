@@ -29,7 +29,7 @@ jobs:
         run: |
           # 安装 Qt 6.8.2 + MSVC2022 64-bit 的核心包
           aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m all
-          echo "Qt6_DIR=C:\\Qt\\6.8.2\\msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "Qt6_DIR=C:\\Qt\\6.8.2\\win64_msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
 
       - name: Prepare QtMsBuild folder
@@ -46,11 +46,11 @@ jobs:
           echo "QtMsBuild=$Env:LOCALAPPDATA\QtMsBuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Check qmake
-        run: dir C:\Qt\6.8.2\msvc2022_64\bin
+        run: dir C:\Qt\6.8.2\win64_msvc2022_64\bin
 
       - name: Setup MSBuild (VS2022)
         uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Build Solution
-        run: msbuild SimpleRustDesk.sln /m /p:Configuration=Release /p:Platform=x64 /p:QtInstallation="Qt_6_8_2" /p:QtInstallDir="C:\Qt\6.8.2\msvc2022_64"
+        run: msbuild SimpleRustDesk.sln /m /p:Configuration=Release /p:Platform=x64 /p:QtInstallation="Qt_6_8_2" /p:QtInstallDir="C:\Qt\6.8.2\win64_msvc2022_64"
 
