@@ -46,7 +46,7 @@ jobs:
           echo "QtMsBuild=$Env:LOCALAPPDATA\QtMsBuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Check qmake
-        run: dir C:\Qt\6.8.2\win64_msvc2022_64\bin
+        run: dir C:\Qt\6.8.2\
 
       - name: Setup MSBuild (VS2022)
         uses: microsoft/setup-msbuild@v1.0.2
