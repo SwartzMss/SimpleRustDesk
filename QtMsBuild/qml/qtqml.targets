@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/***************************************************************************************************
+ Copyright (C) 2024 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
+***************************************************************************************************/
+-->
+
+<!--
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// QML targets
+// -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Import pre-requisites
+  // -->
+  <Import
+    Condition="'$(QtMsBuildTargets_BeforeQml)' != ''"
+    Project="$(QtMsBuildTargets_BeforeQml)"/>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Qt/MSBuild global properties
+  //  * add QtQml to the list of targets to run during build
+  // -->
+  <PropertyGroup>
+    <QtBuildTargets>$(QtBuildTargets);QtQml</QtBuildTargets>
+  </PropertyGroup>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // QML build entry point
+  // -->
+  <Target Name="QtQml" DependsOnTargets="QtQmlCreateItems">
+  </Target>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Create QtQml items for project files with extension '.qml' or '.js'
+  // -->
+  <Target Name="QtQmlCreateItems">
+    <ItemGroup>
+      <QtQml Include="@(None)"
+        Condition="'%(None.Extension)' == '.qml' OR '%(None.Extension)' == '.js'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="QtQmlClean" BeforeTargets="QtClean">
+    <RemoveDir Directories="$(QtIntDir)qml"/>
+  </Target>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Import dependants
+  // -->
+  <Import
+    Condition="'$(QtMsBuildTargets_AfterQml)' != ''"
+    Project="$(QtMsBuildTargets_AfterQml)"/>
+
+</Project>

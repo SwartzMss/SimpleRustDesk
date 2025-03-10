@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+/***************************************************************************************************
+ Copyright (C) 2024 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
+***************************************************************************************************/
+-->
+<!--
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Qt/MSBuild moc property definitions
+// -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Import pre-requisites
+  // -->
+  <Import
+    Condition="'$(QtMsBuildProps_BeforeMoc)' != ''"
+    Project="$(QtMsBuildProps_BeforeMoc)"/>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtMoc item template
+  // -->
+  <ItemDefinitionGroup>
+    <QtMoc>
+      <ExecutionDescription>moc %(Identity)</ExecutionDescription>
+
+      <QTDIR Condition="'$(QtVsProjectSettings)' != 'true'"
+        >$(QTDIR)</QTDIR>
+      <QTDIR Condition="'$(QtVsProjectSettings)' == 'true'"
+        >$(QtInstallDir)</QTDIR>
+
+      <InputFile>%(FullPath)</InputFile>
+
+      <OutputFile Condition="'$(QtVsProjectSettings)' != 'true'"
+        >$(ProjectDir)GeneratedFiles\$(Configuration)\moc_%(Filename).cpp</OutputFile>
+
+      <QtMocDir Condition="'$(QtVsProjectSettings)' == 'true'"
+        >$(QtIntDir)moc\</QtMocDir>
+      <QtMocFileName Condition="'$(QtVsProjectSettings)' == 'true'"
+        >moc_%(Filename).cpp</QtMocFileName>
+
+      <DynamicSource>output</DynamicSource>
+      <ParallelProcess>true</ParallelProcess>
+      <CommandLineTemplate>[AllOptions] [AdditionalOptions]</CommandLineTemplate>
+      <Outputs>%(OutputFile)</Outputs>
+      <OverrideClCompile>false</OverrideClCompile>
+    </QtMoc>
+  </ItemDefinitionGroup>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Import dependants
+  // -->
+  <Import
+    Condition="'$(QtMsBuildProps_AfterMoc)' != ''"
+    Project="$(QtMsBuildProps_AfterMoc)"/>
+
+</Project>

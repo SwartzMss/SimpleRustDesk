@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+/***************************************************************************************************
+ Copyright (C) 2024 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
+***************************************************************************************************/
+-->
+
+<!--
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// Qt/MSBuild global definitions
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Cleanup user input, remove empty entries in lists etc...
+  // -->
+  <PropertyGroup Condition="'$(QtVsProjectSettings)' == 'true'">
+    <QtCleaned_QtInstall Condition="'$(QtInstall)' != ''"
+      >$([MSBuild]::Unescape($(QtInstall.Split('%3B',StringSplitOptions.RemoveEmptyEntries)[0])))</QtCleaned_QtInstall>
+    <QtCleaned_QtModules Condition="'$(QtModules)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtModules.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtModules>
+    <QtCleaned_QtPathBinaries Condition="'$(QtPathBinaries)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtPathBinaries.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtPathBinaries>
+    <QtCleaned_QtPathLibraryExecutables Condition="'$(QtPathLibraryExecutables)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtPathLibraryExecutables.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtPathLibraryExecutables>
+    <QtCleaned_QtHeaderSearchPath Condition="'$(QtHeaderSearchPath)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtHeaderSearchPath.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtHeaderSearchPath>
+    <QtCleaned_QtLibrarySearchPath Condition="'$(QtLibrarySearchPath)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtLibrarySearchPath.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtLibrarySearchPath>
+    <QtCleaned_QtVars Condition="'$(QtVars)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtVars.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtVars>
+    <QtCleaned_QMakeCodeLines Condition="'$(QMakeCodeLines)' != ''"
+    >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QMakeCodeLines.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QMakeCodeLines>
+    <QtCleaned_QtBuildConfig Condition="'$(QtBuildConfig)' != ''"
+      >$([MSBuild]::Unescape($([System.String]::Join('%3B', $(QtBuildConfig.Split('%3B', StringSplitOptions.RemoveEmptyEntries))))))</QtCleaned_QtBuildConfig>
+  </PropertyGroup>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  /// TARGET QtHash
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // -->
+  <Target Name="QtHash">
+    <!--// Qt settings list for backup -->
+    <ItemGroup>
+      <QtInstall Include="$(QtCleaned_QtInstall)"/>
+      <QtModules Include="$(QtCleaned_QtModules)"/>
+      <QtPathBinaries Include="$(QtCleaned_QtPathBinaries)"/>
+      <QtPathLibraryExecutables Include="$(QtCleaned_QtPathLibraryExecutables)"/>
+      <QtHeaderSearchPath Include="$(QtCleaned_QtHeaderSearchPath)"/>
+      <QtLibrarySearchPath Include="$(QtCleaned_QtLibrarySearchPath)"/>
+      <QtVariables Include="$(QtCleaned_QtVars)"/>
+      <QMakeCodeLines Include="$(QtCleaned_QMakeCodeLines)"/>
+      <QtBuildConfig Include="$(QtCleaned_QtBuildConfig)"/>
+    </ItemGroup>
+
+    <!--// Construct Qt hash list for comparison to backup -->
+    <ItemGroup>
+      <QtHashList Include="$(QtCleaned_QtInstall)"/>
+      <QtHashList Include="$(QtCleaned_QtModules)"/>
+      <QtHashList Include="$(QtCleaned_QtPathBinaries)"/>
+      <QtHashList Include="$(QtCleaned_QtPathLibraryExecutables)"/>
+      <QtHashList Include="$(QtCleaned_QtHeaderSearchPath)"/>
+      <QtHashList Include="$(QtCleaned_QtLibrarySearchPath)"/>
+      <QtHashList Include="$(QtCleaned_QtVars)"/>
+      <QtHashList Include="$(QtCleaned_QMakeCodeLines)"/>
+      <QtHashList Include="$(QtCleaned_QtBuildConfig)"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <QtHashListString>@(QtHashList->'%(Identity)',' ')</QtHashListString>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <QtHashListString Include="$(QtHashListString)"></QtHashListString>
+    </ItemGroup>
+
+    <!--// Construct hash -->
+    <GetItemHash Condition="'@(QtHashListString)' != ''"
+      Item="@(QtHashListString)" Keys="Identity">
+      <Output TaskParameter="Hash" PropertyName="QtHash" />
+    </GetItemHash>
+  </Target>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  /// TARGET QtClean
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Clean-up from previous build
+  // -->
+  <Target Name="QtClean">
+    <Message Importance="High" Condition="'$(QtDebug)' == 'true'" Text="## Qt Clean"/>
+    <Delete Files="$(QtLogFilePath)"/>
+    <RemoveDir Directories="$(QtIntDir)" ContinueOnError="WarnAndContinue" />
+  </Target>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  /// TARGET QtPrepare
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Prepare Qt build: read and parse work log file
+  // -->
+  <Target Name="QtPrepare"
+    DependsOnTargets="QtGetDefaultClCompile">
+    <Message Importance="high"
+      Text=" Qt/MSBuild: $(QtVSToolsVersion)"/>
+    <MakeDir Condition="!Exists('$(QtIntDir)')" Directories="$(QtIntDir)" />
+    <ReadLinesFromFile Condition="Exists('$(QtLogFilePath)')" File="$(QtLogFilePath)">
+      <Output TaskParameter="Lines" ItemName="QtLogData"/>
+    </ReadLinesFromFile>
+    <ItemGroup Condition="'@(QtLogData)' != ''">
+      <QtWorkLog
+        Include="@(QtLogData->'$([System.String]::Copy('%(QtLogData.Identity)').Split('|')[0])')">
+        <Hash>$([System.String]::Copy('%(QtLogData.Identity)').Split('|')[1])</Hash>
+      </QtWorkLog>
+    </ItemGroup>
+  </Target>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  /// TARGET ResolveHost
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // -->
+  <Target Name="ResolveHost" DependsOnTargets="ResolveRemoteDir"
+    Condition="'$(ApplicationType)' == 'Linux' AND '$(PlatformToolset)' != 'WSL_1_0'">
+    <ResolveRemoteDir
+      Condition="'$(_ResolvedRemoteProjectDir)' == ''"
+      RemoteProjectDir="$(RemoteProjectDir)"
+      RemoteTarget="$(ResolvedRemoteTarget)"
+      ProjectDir="$(ProjectDir)"
+      IntermediateDir="$(IntDir)"
+      RemoteProjectDirFile="$(RemoteProjectDirFile)">
+      <Output TaskParameter="ResolvedRemoteProjectDir" PropertyName="_ResolvedRemoteProjectDir"/>
+    </ResolveRemoteDir>
+  </Target>
+
+</Project>

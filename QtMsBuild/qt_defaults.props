@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+/***************************************************************************************************
+ Copyright (C) 2024 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
+***************************************************************************************************/
+-->
+
+<!--
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Default values of Qt settings
+//
+// Preceding evaluation chain:
+//  * Project global properties, incl. $(Keyword), $(WindowsTargetPlatformVersion), $(QtMsBuild)
+//  * Microsoft.Cpp.Default.props
+//  * Configuration properties, incl. $(ConfigurationType), $(PlatformToolset)
+//
+// -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <QtDefaultsLoaded>true</QtDefaultsLoaded>
+  </PropertyGroup>
+
+  <!-- // Qt VS Tools Version -->
+  <PropertyGroup>
+    <QtVSToolsVersion Condition="Exists('$(MSBuildThisFileDirectory)\..\..\version.log')"
+      >$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)\..\..\version.log'))</QtVSToolsVersion>
+    <QtVSToolsVersion Condition="Exists('$(MSBuildThisFileDirectory)\version.log')"
+      >$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)\version.log'))</QtVSToolsVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <QtVSToolsVersion>$(QtVSToolsVersion.Trim('%0D').Trim('%0A').Trim())</QtVSToolsVersion>
+  </PropertyGroup>
+
+  <!-- // Qt VS Project Format Version -->
+  <PropertyGroup>
+    <QtVsProjectVersion>0</QtVsProjectVersion>
+    <QtVsProjectMinVersion_Settings>300</QtVsProjectMinVersion_Settings>
+    <QtVsProjectMinVersion_ClProperties>300</QtVsProjectMinVersion_ClProperties>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Keyword)' != ''">
+    <QtVsProjectVersion Condition="'$(Keyword)' == 'Qt4VSv1.0'">200</QtVsProjectVersion>
+    <QtVsProjectVersion Condition="$(Keyword.StartsWith('QtVS_v'))"
+      >$([System.Convert]::ToInt32($(Keyword.Substring(6))))</QtVsProjectVersion>
+    <QtVsProjectSettings Condition="$(QtVsProjectVersion) &gt;= $(QtVsProjectMinVersion_Settings)"
+      >true</QtVsProjectSettings>
+    <QtVsProjectSettings Condition="$(QtVsProjectVersion) &lt; $(QtVsProjectMinVersion_Settings)"
+      >false</QtVsProjectSettings>
+    <QtVsProjectClProperties
+      Condition="$(QtVsProjectVersion) &gt;= $(QtVsProjectMinVersion_ClProperties)"
+      >true</QtVsProjectClProperties>
+    <QtVsProjectClProperties
+      Condition="$(QtVsProjectVersion) &lt; $(QtVsProjectMinVersion_ClProperties)"
+      >false</QtVsProjectClProperties>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--// Path of Qt binary files -->
+    <QtPathBinaries>bin</QtPathBinaries>
+    <QtPathLibraryExecutables>bin</QtPathLibraryExecutables>
+
+    <!--// Run Qt tools during design-time build -->
+    <QtToolsDesignTime>true</QtToolsDesignTime>
+
+    <!--// qmake template -->
+    <QtQMakeTemplate>vcapp</QtQMakeTemplate>
+
+    <!--// Extract Qt variables from qmake-generated Makefile
+        //     Syntax: < var_name > [ = [ makefile_name ] / < pattern > / < replace > / ] -->
+    <QMake_Makefile>
+      DEFINES=/-D([^\s=]+(=(\x22(\\\\|\\\x22|[^\x22])*\x22|\S+))?)/$1/;
+      INCLUDEPATH=INCPATH/-(?:iquote|isystem|idirafter|I)\s*(\x22[^\x22]+\x22|[^\s]+)/$1/;
+      LIBS=/(?:(?:\/LIBPATH:|-L)(?:\x22[^\x22]+\x22|[^\s]+))|(\x22[^\x22]+\x22|[^\s]+)/$1/;
+      LIBPATH=LIBS/(?:\/LIBPATH:|-L)(\x22[^\x22]+\x22|[^\s]+)/$1/;
+    </QMake_Makefile>
+
+    <!--// Extract Qt variables from qmake-generated .vcxproj file
+        //     Syntax: < var_name >  = < xpath_to_value > -->
+    <QMake_MSBuild>
+      DEFINES=/Project/ItemDefinitionGroup/ClCompile/PreprocessorDefinitions;
+      INCLUDEPATH=/Project/ItemDefinitionGroup/ClCompile/AdditionalIncludeDirectories;
+      STDCPP=/Project/ItemDefinitionGroup/ClCompile/LanguageStandard;
+      RUNTIME=/Project/ItemDefinitionGroup/ClCompile/RuntimeLibrary;
+      CL_OPTIONS=/Project/ItemDefinitionGroup/ClCompile/AdditionalOptions;
+      LIBS=/Project/ItemDefinitionGroup/Link/AdditionalDependencies;
+      LINK_OPTIONS=/Project/ItemDefinitionGroup/Link/AdditionalOptions;
+    </QMake_MSBuild>
+
+    <!--// Registry -->
+    <QtRegistryRoot Condition="'$(QtRegistryRoot)' == ''"
+      >HKEY_CURRENT_USER\Software\QtProject\QtVsTools</QtRegistryRoot>
+    <QtRegistrySuffix Condition="'$(VSROOTSUFFIX)' != ''"
+      >\$(VSROOTSUFFIX)</QtRegistrySuffix>
+    <QtRegistryPath Condition="'$(QtRegistryPath)' == ''"
+      >$(QtRegistryRoot)$(QtRegistrySuffix)</QtRegistryPath>
+    <QtSettingsRegistryPath Condition="'$(QtSettingsRegistryPath)' == ''"
+      >$(QtRegistryPath)\Settings</QtSettingsRegistryPath>
+    <QtVersionsRegistryPath Condition="'$(QtVersionsRegistryPath)' == ''"
+      >$(QtRegistryPath)\Versions</QtVersionsRegistryPath>
+
+    <!--// Default Qt version -->
+    <DefaultQtVersion Condition="'$(DefaultQtVersion)' == ''"
+      >$([MSBuild]::GetRegistryValue('$(QtVersionsRegistryPath)','DefaultQtVersion'
+        ))</DefaultQtVersion>
+
+    <!--// Qt build config -->
+    <QtBuildConfig Condition="'$(Configuration)' == 'Debug'">debug</QtBuildConfig>
+    <QtBuildConfig Condition="'$(Configuration)' != 'Debug'">release</QtBuildConfig>
+
+    <!--// Qt Plugin default-->
+    <QtPlugin>false</QtPlugin>
+
+    <!--// MOC macro names defaults -->
+    <MocMacroNames>Q_OBJECT;Q_GADGET;Q_NAMESPACE;Q_NAMESPACE_EXPORT</MocMacroNames>
+
+    <!--// QML debug disabled by default -->
+    <QtQMLDebugEnable>false</QtQMLDebugEnable>
+
+    <!--// Default Qt settings -->
+    <QtInstall Condition="'$(QtInstall)' == ''">$(DefaultQtVersion)</QtInstall>
+    <QtModules Condition="'$(QtModules)' == ''">core</QtModules>
+  </PropertyGroup>
+
+  <!--// Default late bindings -->
+  <ItemGroup>
+    <_- Include="_-">
+      <IntDir>$(IntDir)</IntDir>
+      <OutDir>$(OutDir)</OutDir>
+    </_->
+  </ItemGroup>
+
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Read subfolder dependencies (qt_import.props)
+  // -->
+  <PropertyGroup>
+    <SubFolder>$([System.IO.Directory]::GetDirectories('$(MSBuildThisFileDirectory)'))</SubFolder>
+    <SubFolderImports Condition="'$(SubFolder)' != ''"
+      >
+      $([System.String]::Join(
+      '\qt_import.props;',
+      $(SubFolder.Split(';'))))\qt_import.props
+    </SubFolderImports>
+    <QtImports>$(SubFolderImports.Split(';'))</QtImports>
+    <SubFolder/>
+    <SubFolderImports/>
+  </PropertyGroup>
+  <Import
+    Project="$(QtImports)"/>
+
+</Project>

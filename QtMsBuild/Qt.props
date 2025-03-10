@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+/***************************************************************************************************
+ Copyright (C) 2023 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+***************************************************************************************************/
+-->
+<!--
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Item type definition and default values
+// -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // Import private Qt property definitions
+  // -->
+  <ImportGroup Label="Qt">
+    <Import Project="$(MSBuildThisFileDirectory)\qt_private.props"/>
+  </ImportGroup>
+  <!--
+  /////////////////////////////////////////////////////////////////////////////////////////////////
+  // User-defined settings
+  // -->
+  <PropertyGroup Label="UserMacros">
+    <!-- Placeholder for user macros written by VS Property Manager -->
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Placeholder for properties written by VS Property Manager -->
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <!-- Placeholder for default metadata written by VS Property Manager -->
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <!-- Placeholder for items written by VS Property Manager -->
+  </ItemGroup>
+</Project>
