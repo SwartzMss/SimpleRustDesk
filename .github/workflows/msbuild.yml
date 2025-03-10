@@ -6,7 +6,7 @@ on:
 env:
   SOLUTION_FILE_PATH: SimpleRustDesk.sln
   BUILD_CONFIGURATION: Release
-  QtMsBuild: "${{ github.workspace }}\QtMsBuild"
+  QtMsBuild: "${{ github.workspace }}\\QtMsBuild"
 
 permissions:
   contents: read
@@ -22,11 +22,8 @@ jobs:
       - name: Install Qt6 via Chocolatey
         run: |
           choco install qt6 --pre -y
-          # 更新 PATH，确保指向 VS2022 对应的 Qt bin 目录
           setx PATH "$env:PATH;C:\Qt\6.8.2\msvc2022_64\bin"
 
-      # 如果需要，也可以使用 microsoft/setup-msbuild Action，
-      # 目前它会自动选择最新安装的 VS 版本（包括 VS2022）
       - name: Setup MSBuild (VS2022)
         uses: microsoft/setup-msbuild@v1.0.2
 
