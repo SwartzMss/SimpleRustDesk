@@ -29,8 +29,8 @@ jobs:
 
       - name: Install Qt6
         run: |
-          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtcore qtgui qtwidgets qtnetwork qtsvg
-          echo "Qt6_DIR=$env:Qt_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtbase qtsvg qt5compat qtnetwork
+          echo "Qt6_DIR=C:\\Qt\\6.8.2\\msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup MSBuild (VS2022)
         uses: microsoft/setup-msbuild@v1.0.2
