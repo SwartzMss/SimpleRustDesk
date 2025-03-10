@@ -49,7 +49,7 @@
       <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>sqlite3.lib;Qt6Network.lib;RendezvousProto.lib;libprotobuf.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sqlite3.lib;Qt6Network.lib;RendezvousProto.lib;libprotobuf.lib;abseil_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\Depend\protobuf\lib;..\Depend\RendezvousProto\lib;..\Depend\sqlite3\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

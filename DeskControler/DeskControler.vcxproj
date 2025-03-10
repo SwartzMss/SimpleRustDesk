@@ -48,7 +48,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>..\Depend\RendezvousProto\lib;..\Depend\protobuf\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;abseil_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
