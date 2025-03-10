@@ -6,8 +6,7 @@ on:
 env:
   SOLUTION_FILE_PATH: SimpleRustDesk.sln
   BUILD_CONFIGURATION: Release
-  # 更新 QtMsBuild 变量为 VS2022 对应的路径（请根据实际路径调整）
-  QtMsBuild: "C:\Qt\6.8.2\msvc2022_64\QtMsBuild"
+  QtMsBuild: "${{ github.workspace }}\QtMsBuild"
 
 permissions:
   contents: read
