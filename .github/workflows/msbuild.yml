@@ -43,6 +43,9 @@ jobs:
                         -ArgumentList "/quiet", "/shutdownall", "/install", "qt-vsaddin-msvc2022.vsix" `
                        -Wait
 
+      - name: Check QtMsBuild folder
+        run: dir $Env:LOCALAPPDATA\QtMsBuild
+
       - name: Setup MSBuild (VS2022)
         uses: microsoft/setup-msbuild@v1.0.2
 
