@@ -36,7 +36,7 @@ jobs:
       - name: Install Qt Visual Studio Tools
         run: |
           # 1. 下载 Qt VS Tools 插件 (VSIX)
-          Invoke-WebRequest -Uri "https://download.qt.io/development_releases/vsaddin/3.3.1/qt-vsaddin-msvc2022-arm64-3.3.1.vsix" -OutFile "qt-vsaddin-msvc2022.vsix"
+          Invoke-WebRequest -Uri "https://download.qt.io/development_releases/vsaddin/3.3.1/qt-vsaddin-msvc2022-x64-3.3.1.vsix" -OutFile "qt-vsaddin-msvc2022.vsix"
           
           # 2. 安装到 VS2022
           Start-Process -FilePath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\VSIXInstaller.exe" `
