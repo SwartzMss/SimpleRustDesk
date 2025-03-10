@@ -18,31 +18,6 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 - **RelayServer（中继服务器）**  
   RelayServer 提供数据转发服务，确保远程控制过程中的数据能够顺畅传输。
 
-```mermaid
-flowchart TD
-    A["DeskServer (DS) 向 IDServer (IDS) 注册在线信息"]
-    B["DS 检测 RelayServer (RS) 状态"]
-    C["DeskControler (DC) 输入目标 DS 的 ID 并发送请求给 DS"]
-    D["目标 DS 是否存在且在线?"]
-    E["DS 直接返回失败给 DC"]
-    F["IDS 向 DS 发送消息"]
-    G["DS 检查 RS 状态，获取 RS 的 IP 和端口信息"]
-    H["DS 将 RS 信息反馈给 IDS"]
-    I["IDS 将 RS 信息转发给 DC"]
-    J["DC 与 DS 分别与 RS 建立连接"]
-    K["RS 开始进行数据转发"]
-
-    A --> B
-    B --> C
-    C --> D
-    D -- "否" --> E
-    D -- "是" --> F
-    F --> G
-    G --> H
-    H --> I
-    I --> J
-    J --> K
-
 
 ## 注意事项
 
