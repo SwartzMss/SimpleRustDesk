@@ -5,9 +5,6 @@ on:
     branches: [ "main" ]
 env:
   SOLUTION_FILE_PATH: SimpleRustDesk.sln
-  BUILD_CONFIGURATION: Release
-  Qt_DIR: "C:\\Qt\\6.8.2\\msvc2022_64"
-  QtMsBuild:
 
 permissions:
   contents: read
@@ -48,13 +45,15 @@ jobs:
           # 设置环境变量 QtMsBuild，让后续 steps 的 MSBuild 都认识
           echo "QtMsBuild=$Env:LOCALAPPDATA\QtMsBuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           
-          # 可选：看一下是否拷贝成功
-          dir $Env:LOCALAPPDATA\QtMsBuild
 
       - name: Setup MSBuild (VS2022)
         uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Build Solution
         run: |
-          $env:Path = "C:\\Qt\\6.8.2\\msvc2022_64\\bin;$env:Path"
-          msbuild /m /p:Configuration=$env:BUILD_CONFIGURATION /p:QtVsTools=true /p:Qt_DIR="$env:Qt_DIR" $env:SOLUTION_FILE_PATH
+          msbuild SimpleRustDesk.sln ^
+            /m ^
+            /p:Configuration=Release ^
+            /p:Platform=x64 ^
+            /p:QtInstallation="Qt_6_8_2" ^
+            /p:QtInstallDir="C:\Qt\6.8.2\msvc2022_64"
