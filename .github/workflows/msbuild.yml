@@ -6,7 +6,7 @@ on:
 env:
   SOLUTION_FILE_PATH: SimpleRustDesk.sln
   BUILD_CONFIGURATION: Release
-  Qt_DIR: "C:\\Qt\\6.8.2\\msvc2022_64"  # 新增Qt目录变量
+  Qt_DIR: "C:\\Qt\\6.8.2\\msvc2022_64"
 
 permissions:
   contents: read
@@ -29,7 +29,8 @@ jobs:
 
       - name: Install Qt6
         run: |
-          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtbase qtsvg qt5compat qtnetwork
+          # 安装 Qt 6.8.2 + MSVC2022 64-bit 的核心包
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64
           echo "Qt6_DIR=C:\\Qt\\6.8.2\\msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup MSBuild (VS2022)
