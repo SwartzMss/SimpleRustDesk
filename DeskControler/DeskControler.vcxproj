@@ -43,12 +43,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\Depend\protobuf;..\Depend\protobuf\include;..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Depend\protobuf;..\Depend\ffmpeg\include;..\Depend\protobuf\include;..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\Depend\RendezvousProto\lib;..\Depend\protobuf\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;abseil_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\Depend\ffmpeg\lib;..\Depend\RendezvousProto\lib;..\Depend\protobuf\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;abseil_dll.lib;Qt6OpenGL.lib;avcodec.lib;Qt6OpenGLWidgets.lib;avformat.lib;Qt6Widgets.lib;Qt6Gui.lib;avfilter.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
@@ -70,6 +70,8 @@
   <ItemGroup>
     <ClCompile Include="MessageHandler.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
+    <ClCompile Include="VideoReceiver.cpp" />
+    <ClCompile Include="VideoWidget.cpp" />
     <QtRcc Include="DeskControler.qrc" />
     <QtUic Include="DeskControler.ui" />
     <QtMoc Include="DeskControler.h" />
@@ -85,6 +87,12 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="NetworkManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="VideoReceiver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="VideoWidget.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

@@ -44,7 +44,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>..\Depend\protobuf\include;..\Depend\protobuf;..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Depend\protobuf\include;..\Depend\ffmpeg\include;..\Depend\protobuf;..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <Optimization>Disabled</Optimization>
     </ClCompile>
@@ -72,6 +72,7 @@
   <ItemGroup>
     <ClCompile Include="PeerClient.cpp" />
     <ClCompile Include="RelayPeerClient.cpp" />
+    <ClCompile Include="ScreenCaptureEncoder.cpp" />
     <QtRcc Include="DeskServer.qrc" />
     <QtUic Include="DeskServer.ui" />
     <QtMoc Include="DeskServer.h" />
@@ -87,6 +88,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="RelayPeerClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="ScreenCaptureEncoder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
