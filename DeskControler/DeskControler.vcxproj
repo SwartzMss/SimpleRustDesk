@@ -48,7 +48,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>..\Depend\ffmpeg\lib;..\Depend\RendezvousProto\lib;..\Depend\protobuf\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;abseil_dll.lib;Qt6OpenGL.lib;avcodec.lib;Qt6OpenGLWidgets.lib;avformat.lib;Qt6Widgets.lib;Qt6Gui.lib;avfilter.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>RendezvousProto.lib;libprotobuf.lib;Qt6Network.lib;abseil_dll.lib;Qt6OpenGL.lib;Qt6OpenGLWidgets.lib;Qt6Widgets.lib;Qt6Gui.lib;avformat.lib;avcodec.lib;swscale.lib;avutil.lib;swresample.lib;avfilter.lib;avdevice.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
