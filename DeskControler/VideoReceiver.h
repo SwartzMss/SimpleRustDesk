@@ -5,6 +5,7 @@
 #include <QtNetwork/QTcpSocket>
 #include <QByteArray>
 #include <QImage>
+#include <QUuid>  // ã€MODã€‘ç”¨äºç”Ÿæˆ id
 
 // FFmpeg includes
 extern "C" {
@@ -17,30 +18,35 @@ extern "C" {
 class VideoReceiver : public QObject {
 	Q_OBJECT
 public:
+	// ã€MODã€‘ä¿®æ”¹æ„é€ å‡½æ•°ä¸å˜
 	explicit VideoReceiver(QObject* parent = nullptr);
 	~VideoReceiver();
 
-	// Á¬½Óµ½·şÎñÆ÷£¨ÀıÈç "127.0.0.1", 12345£©
-	void connectToServer(const QString& host, quint16 port);
+	// ã€MODã€‘é‡è½½ connectToServerï¼Œå¢åŠ  uuid å‚æ•°ï¼Œç”¨äºæ„é€  RequestRelay æ¶ˆæ¯
+	void connectToServer(const QString& host, quint16 port, const QString& uuid);
 
 signals:
-	// µ±½âÂë³öÒ»Ö¡Í¼ÏñÊ±·¢³öĞÅºÅ
+	// å½“è§£ç å‡ºä¸€å¸§å›¾åƒæ—¶å‘å‡ºä¿¡å·
 	void frameReady(const QImage& image);
 
 private slots:
+	void onSocketConnected(); // ã€MODã€‘æ–°å¢ï¼šè¿æ¥å»ºç«‹åå‘é€ RequestRelay æ¶ˆæ¯
 	void onSocketReadyRead();
 	void onSocketError(QAbstractSocket::SocketError error);
 
 private:
 	QTcpSocket* socket;
-	QByteArray buffer; // ÓÃÓÚ´æ´¢½ÓÊÕµÄÊı¾İ
+	QByteArray buffer; // ç”¨äºå­˜å‚¨æ¥æ”¶çš„æ•°æ®
 
-	// FFmpeg ½âÂëÏà¹Ø³ÉÔ±
+	// FFmpeg è§£ç ç›¸å…³æˆå‘˜
 	const AVCodec* codec;
 	AVCodecContext* codecCtx;
 	AVFrame* frame;
-	// ×ª»»ÉÏÏÂÎÄ£¬½« YUV420P ×ªÎª RGBA£¨QImage Ê¹ÓÃµÄ¸ñÊ½£©
+	// è½¬æ¢ä¸Šä¸‹æ–‡ï¼Œå°† YUV420P è½¬ä¸º RGBAï¼ˆQImage ä½¿ç”¨çš„æ ¼å¼ï¼‰
 	SwsContext* swsCtx;
+
+	// ã€MODã€‘ä¿å­˜å‘é€ RequestRelay æ¶ˆæ¯æ—¶éœ€è¦çš„ uuid
+	QString relayUuid;
 };
 
 #endif // VIDEORECEIVER_H
