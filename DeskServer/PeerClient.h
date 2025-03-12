@@ -5,6 +5,7 @@
 #include <QtNetwork/QHostAddress>
 #include <QTimer>
 #include "rendezvous.pb.h"
+#include "RelayManager.h" 
 
 class PeerClient : public QObject {
 	Q_OBJECT
@@ -12,19 +13,19 @@ public:
 	explicit PeerClient(QObject* parent = nullptr);
 	~PeerClient();
 
-	// Æô¶¯Á¬½Ó£¬´«Èë·şÎñÆ÷ IP ºÍ¶Ë¿Ú
+	// å¯åŠ¨è¿æ¥ï¼Œä¼ å…¥æœåŠ¡å™¨ IP å’Œç«¯å£
 	void start(const QHostAddress& address, quint16 port);
-	// Í£Ö¹Á¬½Ó
+	// åœæ­¢è¿æ¥
 	void stop();
-	// ÉèÖÃ relay ĞÅÏ¢
+	// è®¾ç½® relay ä¿¡æ¯
 	void setRelayInfo(const QString& ip, int port);
 
 	void setRelayStatus(bool isOnline);
 
 signals:
-	// ×¢²á½á¹ûĞÅºÅ£¬·µ»Ø RegisterPeerResponse::Result Ã¶¾ÙÖµ
+	// æ³¨å†Œç»“æœä¿¡å·ï¼Œè¿”å› RegisterPeerResponse::Result æšä¸¾å€¼
 	void registrationResult(RegisterPeerResponse::Result result);
-	// ³ö´íĞÅºÅ
+	// å‡ºé”™ä¿¡å·
 	void errorOccurred(const QString& errorString);
 
 private slots:
@@ -42,11 +43,12 @@ private:
 	QHostAddress m_serverAddress;
 	quint16 m_serverPort;
 	QTimer* m_reconnectTimer;
-	bool m_isStopping;  // ±ê¼ÇÊÇ·ñÎªÖ÷¶¯Í£Ö¹
+	bool m_isStopping;  // æ ‡è®°æ˜¯å¦ä¸ºä¸»åŠ¨åœæ­¢
 	bool m_connected;
 	bool m_isRelayOnline;
 	QString m_relayIP;
 	int m_relayPort;
+        RelayManager* m_relayManager;
 
 };
 
