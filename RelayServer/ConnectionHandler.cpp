@@ -86,41 +86,35 @@ void ConnectionHandler::onReadyRead()
 
 void ConnectionHandler::processData(const QByteArray& data)
 {
-	// 如果还没有配对，认为收到的是握手数据（后续数据直接转发）
-	if (!m_peer) 
-	{
-		// 解析 proto 消息，注意这里假设一次能收到完整消息
-		RequestRelay  request;
-		if (!request.ParseFromArray(data.constData(), data.size())) {
-			LogWidget::instance()->addLog("Failed to parse RelayRequest from proto data", LogWidget::Error);
-			return;
-		}
-		QString id = QString::fromStdString(request.id());
-		QString uuid = QString::fromStdString(request.uuid());
 
-		if (uuid.isEmpty()) {
-			LogWidget::instance()->addLog("Received relay request with empty UUID", LogWidget::Error);
-			return;
-		}
-
-		// 根据 id 判断连接角色
-		if (!id.isEmpty()) {
-			// 发起方：先进行缓存等待对方连接
-			LogWidget::instance()->addLog(QString("Received initiator relay request: id=%1, uuid=%2").arg(id, uuid), LogWidget::Info);
-		}
-		else {
-			// 被控制方：等待与发起方进行配对
-			LogWidget::instance()->addLog(QString("Received controlled relay request with uuid: %1").arg(uuid), LogWidget::Info);
-		}
-
-		// 发射信号，由 RelayServer 的 tryPairing 来完成配对（第一来缓存、第二来配对）
-		emit relayRequestReceived(uuid);
+	RendezvousMessage msg;
+	if (!msg.ParseFromArray(data.constData(), data.size())) {
+		LogWidget::instance()->addLog("Failed to parse RendezvousMessage from data", LogWidget::Warning);
+		return;
 	}
-	else 
-	{
-		// 已配对后，收到的数据直接转发给对端
-		if (m_peer && m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
-			m_peer->socket()->write(data);
+	// 根据 oneof 字段判断消息类型
+	if (msg.has_request_relay()) {
+		// 如果还没有配对，认为收到的是握手数据（后续数据直接转发）
+		if (!m_peer)
+		{
+			RequestRelay requestRelay = msg.request_relay();
+			QString uuid = QString::fromStdString(requestRelay.uuid());
+			if (uuid.isEmpty()) {
+				LogWidget::instance()->addLog("Received relay request with empty UUID", LogWidget::Error);
+				return;
+			}
+			emit relayRequestReceived(uuid);
+
 		}
+		else
+		{
+			// 已配对后，收到的数据直接转发给对端
+			if (m_peer && m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
+				m_peer->socket()->write(data);
+			}
+		}
+	}
+	else {
+		LogWidget::instance()->addLog("Unknown message type in RendezvousMessage", LogWidget::Warning);
 	}
 }

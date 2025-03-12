@@ -71,6 +71,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="PeerClient.cpp" />
+    <ClCompile Include="RelayManager.cpp" />
     <ClCompile Include="RelayPeerClient.cpp" />
     <ClCompile Include="ScreenCaptureEncoder.cpp" />
     <QtRcc Include="DeskServer.qrc" />
@@ -91,6 +92,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ScreenCaptureEncoder.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="RelayManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

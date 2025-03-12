@@ -24,6 +24,8 @@ public:
 	~ScreenCaptureEncoder();
 
 	void startCapture();
+	// 停止捕获
+	void stopCapture();
 
 signals:
 	// 当编码出数据包后发出信号，由外部处理发送逻辑

@@ -79,9 +79,9 @@ void PeerClient::onConnected()
 	LogWidget::instance()->addLog("Connected successfully", LogWidget::Info);
 
 	// 生成 UUID 字符串并发送 RegisterPeer 消息
-	static QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	m_uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	RegisterPeer regPeer;
-	regPeer.set_uuid(uuidStr.toStdString());
+	regPeer.set_uuid(m_uuid.toStdString());
 
 	RendezvousMessage msg;
 	*msg.mutable_register_peer() = regPeer;
@@ -94,7 +94,7 @@ void PeerClient::onConnected()
 	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
 	m_socket->write(data);
 	m_socket->flush();
-	LogWidget::instance()->addLog(QString("Sent RegisterPeer message with uuid %1").arg(uuidStr), LogWidget::Info);
+	LogWidget::instance()->addLog(QString("Sent RegisterPeer message with uuid %1").arg(m_uuid), LogWidget::Info);
 }
 
 void PeerClient::onReadyRead()
@@ -150,14 +150,14 @@ void PeerClient::onReadyRead()
 		m_socket->flush();
 		LogWidget::instance()->addLog("Sent PunchHoleSent message in response", LogWidget::Info);
 
-	        // If the result is OK, start the RelayManager to establish a TCP connection to the relay server.
-	        if (sent.result() == PunchHoleSent::OK) {
-	            if (!m_relayManager) {
-	                m_relayManager = new RelayManager(this);
-	            }
-	            // Use the current relay info, the generated UUID, and the punch hole id as parameters.
-	            m_relayManager->start(QHostAddress(m_relayIP), m_relayPort, m_uuid, QString::fromStdString(msg.punch_hole().id()));
-	        }
+		// If the result is OK, start the RelayManager to establish a TCP connection to the relay server.
+		if (sent.result() == PunchHoleSent::OK) {
+			if (!m_relayManager) {
+				m_relayManager = new RelayManager(this);
+			}
+			// Use the current relay info, the generated UUID, and the punch hole id as parameters.
+			m_relayManager->start(QHostAddress(m_relayIP), m_relayPort, m_uuid);
+		}
 	}
 	else {
 		LogWidget::instance()->addLog("Received unknown message type", LogWidget::Warning);

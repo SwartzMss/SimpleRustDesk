@@ -48,7 +48,8 @@ private:
 	bool m_isRelayOnline;
 	QString m_relayIP;
 	int m_relayPort;
-        RelayManager* m_relayManager;
+	QString m_uuid;
+    RelayManager* m_relayManager;
 
 };
 

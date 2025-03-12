@@ -13,12 +13,11 @@ RelayManager::~RelayManager() {
     stop();
 }
 
-void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, const QString& uuid, const QString& punchHoleId)
+void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, const QString& uuid)
 {
     m_relayAddress = relayAddress;
     m_relayPort = relayPort;
     m_uuid = uuid;
-    m_punchHoleId = punchHoleId;
 
     // Create TCP socket and establish connection.
     m_socket = new QTcpSocket(this);
@@ -64,7 +63,6 @@ void RelayManager::onSocketConnected()
 
     // Construct and send RequestRelay message.
     RequestRelay req;
-    req.set_id(m_punchHoleId.toStdString());
     req.set_uuid(m_uuid.toStdString());
     RendezvousMessage relayMsg;
     *relayMsg.mutable_request_relay() = req;
@@ -72,7 +70,7 @@ void RelayManager::onSocketConnected()
     if (relayMsg.SerializeToString(&reqStr)) {
         m_socket->write(reqStr.data(), reqStr.size());
         m_socket->flush();
-        LogWidget::instance()->addLog("RelayManager: RequestRelay message sent", LogWidget::Info);
+        LogWidget::instance()->addLog(QString("RelayManager: RequestRelay message sent %1").arg(m_uuid), LogWidget::Info);
     } else {
         emit errorOccurred("RelayManager: Failed to serialize RequestRelay message");
     }

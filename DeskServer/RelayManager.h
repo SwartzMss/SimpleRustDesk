@@ -2,8 +2,8 @@
 #define RELAYMANAGER_H
 
 #include <QObject>
-#include <QTcpSocket>
-#include <QHostAddress>
+#include <QtNetwork/QTcpSocket>
+#include <QtNetwork/QHostAddress>
 #include "rendezvous.pb.h"
 #include "ScreenCaptureEncoder.h"
 
@@ -13,9 +13,7 @@ public:
     explicit RelayManager(QObject* parent = nullptr);
     ~RelayManager();
 
-    // Start TCP connection to relay server and start capture/encoding process.
-    // 'uuid' and 'punchHoleId' are used for constructing the RequestRelay message.
-    void start(const QHostAddress& relayAddress, quint16 relayPort, const QString& uuid, const QString& punchHoleId);
+    void start(const QHostAddress& relayAddress, quint16 relayPort, const QString& uuid);
     // Stop TCP connection and stop capture/encoding.
     void stop();
 

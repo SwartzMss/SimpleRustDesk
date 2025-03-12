@@ -2,7 +2,6 @@ syntax = "proto3";
 
 
 message RequestRelay {
-  string id = 1;
   string uuid = 2;
 }
 

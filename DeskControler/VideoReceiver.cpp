@@ -1,5 +1,5 @@
 #include "VideoReceiver.h"
-#include <QDebug>
+#include "LogWidget.h"
 #include <QtEndian>
 #include "rendezvous.pb.h"  // 【MOD】包含 protobuf 消息定义
 
@@ -57,9 +57,6 @@ void VideoReceiver::onSocketConnected()
 	// 构造 RequestRelay 消息
 	RendezvousMessage msg;
 	RequestRelay* req = msg.mutable_request_relay();
-	// 生成随机 id，并使用 relayUuid 作为 uuid
-	QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-	req->set_id(id.toUtf8().constData(), id.toUtf8().size());
 	req->set_uuid(relayUuid.toUtf8().constData(), relayUuid.toUtf8().size());
 
 	std::string outStr;
@@ -70,7 +67,8 @@ void VideoReceiver::onSocketConnected()
 	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
 	socket->write(data);
 	socket->flush();
-	qDebug() << "Sent RequestRelay message with id:" << id << "uuid:" << relayUuid;
+
+	LogWidget::instance()->addLog(QString("Sent RequestRelay message with id %1").arg(relayUuid));
 }
 
 void VideoReceiver::onSocketReadyRead()

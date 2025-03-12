@@ -83,6 +83,14 @@ void ScreenCaptureEncoder::startCapture()
 	timer->start(33);
 }
 
+
+void ScreenCaptureEncoder::stopCapture() 
+{
+	if (timer) {
+		timer->stop();
+	}
+}
+
 void ScreenCaptureEncoder::captureAndEncode()
 {
 	// 使用 QScreen 捕获整个屏幕
