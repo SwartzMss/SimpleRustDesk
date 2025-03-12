@@ -6,7 +6,7 @@ PeerClient::PeerClient(QObject* parent)
 	: QObject(parent), m_socket(nullptr), m_serverPort(0), m_connected(false), m_isRelayOnline(false)
 {
 	m_reconnectTimer = new QTimer(this);
-	m_reconnectTimer->setInterval(3000);  // Ã¿ 3 ÃëÖØÁ¬Ò»´Î
+	m_reconnectTimer->setInterval(3000);  // æ¯ 3 ç§’é‡è¿žä¸€æ¬¡
 	m_reconnectTimer->setSingleShot(true);
 	connect(m_reconnectTimer, &QTimer::timeout, this, &PeerClient::attemptReconnect);
 }
@@ -65,6 +65,11 @@ void PeerClient::stop()
 		m_socket->deleteLater();
 		m_socket = nullptr;
 	}
+       if (m_relayManager) {
+        m_relayManager->stop();
+        m_relayManager->deleteLater();
+        m_relayManager = nullptr;
+    }
 }
 
 void PeerClient::onConnected()
@@ -73,7 +78,7 @@ void PeerClient::onConnected()
 	m_reconnectTimer->stop();
 	LogWidget::instance()->addLog("Connected successfully", LogWidget::Info);
 
-	// Éú³É UUID ×Ö·û´®²¢·¢ËÍ RegisterPeer ÏûÏ¢
+	// ç”Ÿæˆ UUID å­—ç¬¦ä¸²å¹¶å‘é€ RegisterPeer æ¶ˆæ¯
 	static QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	RegisterPeer regPeer;
 	regPeer.set_uuid(uuidStr.toStdString());
@@ -102,7 +107,7 @@ void PeerClient::onReadyRead()
 	}
 
 	if (msg.has_register_peer_response()) {
-		// Ô­À´µÄ×¢²á´¦ÀíÂß¼­
+		// åŽŸæ¥çš„æ³¨å†Œå¤„ç†é€»è¾‘
 		RegisterPeerResponse response = msg.register_peer_response();
 		if (response.result() == RegisterPeerResponse::OK) {
 			emit registrationResult(RegisterPeerResponse::OK);
@@ -115,10 +120,10 @@ void PeerClient::onReadyRead()
 		}
 	}
 	else if (msg.has_punch_hole()) {
-		// ÊÕµ½À´×Ô TCP µÄ PunchHole ÏûÏ¢
+		// æ”¶åˆ°æ¥è‡ª TCP çš„ PunchHole æ¶ˆæ¯
 		LogWidget::instance()->addLog("Received PunchHole message from server", LogWidget::Info);
 
-		// ¹¹Ôì PunchHoleSent ÏûÏ¢£¬Ìî³äËùÐè×Ö¶Î£¨ÕâÀïµÄ relay_server ºÍ relay_port ¿É¸ù¾ÝÊµ¼ÊÇé¿öÉèÖÃ£©
+		// æž„é€  PunchHoleSent æ¶ˆæ¯ï¼Œå¡«å……æ‰€éœ€å­—æ®µï¼ˆè¿™é‡Œçš„ relay_server å’Œ relay_port å¯æ ¹æ®å®žé™…æƒ…å†µè®¾ç½®ï¼‰
 		PunchHoleSent sent;
 		sent.set_id(msg.punch_hole().id());
 		if (!m_isRelayOnline)
@@ -132,7 +137,7 @@ void PeerClient::onReadyRead()
 			sent.set_result(PunchHoleSent::OK);
 		}
 
-		// ½« PunchHoleSent ÏûÏ¢Ç¶Èëµ½ RendezvousMessage ÖÐ
+		// å°† PunchHoleSent æ¶ˆæ¯åµŒå…¥åˆ° RendezvousMessage ä¸­
 		RendezvousMessage reply;
 		*reply.mutable_punch_hole_sent() = sent;
 
@@ -144,6 +149,15 @@ void PeerClient::onReadyRead()
 		m_socket->write(outStr.data(), outStr.size());
 		m_socket->flush();
 		LogWidget::instance()->addLog("Sent PunchHoleSent message in response", LogWidget::Info);
+
+	        // If the result is OK, start the RelayManager to establish a TCP connection to the relay server.
+	        if (sent.result() == PunchHoleSent::OK) {
+	            if (!m_relayManager) {
+	                m_relayManager = new RelayManager(this);
+	            }
+	            // Use the current relay info, the generated UUID, and the punch hole id as parameters.
+	            m_relayManager->start(QHostAddress(m_relayIP), m_relayPort, m_uuid, QString::fromStdString(msg.punch_hole().id()));
+	        }
 	}
 	else {
 		LogWidget::instance()->addLog("Received unknown message type", LogWidget::Warning);
@@ -165,7 +179,7 @@ void PeerClient::onDisconnected()
 {
 	m_connected = false;
 	if (!m_isStopping) {
-		// ¶Ï¿ªºóÆô¶¯ÖØÁ¬
+		// æ–­å¼€åŽå¯åŠ¨é‡è¿ž
 		m_reconnectTimer->start();
 	}
 	emit errorOccurred("Disconnected from server");
