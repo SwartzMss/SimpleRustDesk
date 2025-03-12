@@ -1,119 +1,78 @@
 #include "VideoReceiver.h"
+#include "NetworkWorker.h"
+#include "VideoDecoderWorker.h"
 #include "LogWidget.h"
-#include <QtEndian>
-#include "rendezvous.pb.h"
 
 VideoReceiver::VideoReceiver(QObject* parent)
-    : QObject(parent),
-    socket(nullptr)
+    : QObject(parent)
 {
-    // 【MOD】创建解码线程 & Worker
+    // 1) 创建线程
+    m_networkThread = new QThread(this);
     m_decodeThread = new QThread(this);
-    m_worker = new VideoDecoderWorker();     // 无父对象，后面手动 moveToThread
-    m_worker->moveToThread(m_decodeThread);
 
-    // 线程结束自动清理 Worker
-    connect(m_decodeThread, &QThread::finished, m_worker, &QObject::deleteLater);
+    // 2) 创建两个 Worker，但不指定 parent（后面 moveToThread）
+    m_netWorker = new NetworkWorker();        // 负责 TCP 网络收包
+    m_decoderWorker = new VideoDecoderWorker();  // 负责解码
 
-    // 连接 Worker 的解码完成信号到本类的 onFrameDecoded
-    connect(m_worker, &VideoDecoderWorker::frameDecoded,
-        this, &VideoReceiver::onFrameDecoded);
+    // 3) 移动到各自的线程
+    m_netWorker->moveToThread(m_networkThread);
+    m_decoderWorker->moveToThread(m_decodeThread);
 
+    // 4) 线程结束时自动清理 Worker
+    connect(m_networkThread, &QThread::finished, m_netWorker, &QObject::deleteLater);
+    connect(m_decodeThread, &QThread::finished, m_decoderWorker, &QObject::deleteLater);
+
+    // 5) 信号槽连接
+    // 当网络线程拆完一包数据，就发给解码线程
+    connect(m_netWorker, &NetworkWorker::packetReady,
+        m_decoderWorker, &VideoDecoderWorker::decodePacket,
+        Qt::QueuedConnection);
+
+    // 解码完成后回到主线程
+    connect(m_decoderWorker, &VideoDecoderWorker::frameDecoded,
+        this, &VideoReceiver::onFrameDecoded,
+        Qt::QueuedConnection);
+
+    // 网络出错 -> 通知本类
+    connect(m_netWorker, &NetworkWorker::networkError,
+        this, &VideoReceiver::onNetworkError,
+        Qt::QueuedConnection);
+
+    // 启动线程，让它们的事件循环开始工作
+    m_networkThread->start();
     m_decodeThread->start();
 }
 
 VideoReceiver::~VideoReceiver()
 {
-    if (m_decodeThread) {
-        m_decodeThread->quit();
-        m_decodeThread->wait();  // 等待线程真正退出
-    }
-    if (socket) {
-        socket->disconnectFromHost();
-        socket->deleteLater();
-        socket = nullptr;
-    }
+    // 让线程安全退出
+    m_networkThread->quit();
+    m_decodeThread->quit();
+    m_networkThread->wait();
+    m_decodeThread->wait();
+    // Worker 会在 finished 后 deleteLater
 }
 
-void VideoReceiver::connectToServer(const QString& host, quint16 port, const QString& uuid)
+void VideoReceiver::startConnect(const QString& host, quint16 port, const QString& uuid)
 {
-    relayUuid = uuid;
-    socket = new QTcpSocket(this);
-    connect(socket, &QTcpSocket::connected, this, &VideoReceiver::onSocketConnected);
-    connect(socket, &QTcpSocket::readyRead, this, &VideoReceiver::onSocketReadyRead);
-    connect(socket, &QTcpSocket::errorOccurred, this, &VideoReceiver::onSocketError);
-
-    socket->connectToHost(host, port);
+    // 主线程里只要 调用 Worker 的 connectToServer，即可让网络线程连
+    // 这里需要使用 invokeMethod 或 queued signal 来跨线程调用
+    QMetaObject::invokeMethod(m_netWorker,
+        "connectToServer",
+        Qt::QueuedConnection,
+        Q_ARG(QString, host),
+        Q_ARG(quint16, port),
+        Q_ARG(QString, uuid));
 }
 
-void VideoReceiver::onSocketConnected()
+void VideoReceiver::onFrameDecoded(const QImage& img)
 {
-    // 发送 RequestRelay 消息（保持原逻辑）
-    RendezvousMessage msg;
-    RequestRelay* req = msg.mutable_request_relay();
-    req->set_uuid(relayUuid.toUtf8().constData(), relayUuid.toUtf8().size());
-
-    std::string outStr;
-    if (!msg.SerializeToString(&outStr)) {
-        LogWidget::instance()->addLog(QString("Failed to serialize RequestRelay message"), LogWidget::Error);
-        return;
-    }
-    QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
-    socket->write(data);
-    socket->flush();
+    // 把解码好的帧发给外部
+    emit frameReady(img);
 }
 
-void VideoReceiver::onSocketReadyRead()
+void VideoReceiver::onNetworkError(const QString& err)
 {
-    buffer.append(socket->readAll());
-
-    int packetsProcessed = 0;               // 【MOD】新增计数
-    const int MAX_PACKETS_PER_CYCLE = 10;   // 每轮最多处理 10 个包，随需求调整
-
-    while (buffer.size() >= 4) {
-        // 如果这次已经处理了 10 个包，就让出主线程，等下一次事件循环
-        if (packetsProcessed >= MAX_PACKETS_PER_CYCLE) {
-            break;
-        }
-
-        quint32 packetSize;
-        memcpy(&packetSize, buffer.constData(), 4);
-        packetSize = qFromBigEndian(packetSize);
-        if (buffer.size() < 4 + static_cast<int>(packetSize)) {
-            break;
-        }
-
-        QByteArray packetData = buffer.mid(4, packetSize);
-        buffer.remove(0, 4 + packetSize);
-
-        // 投递给解码线程
-        QMetaObject::invokeMethod(
-            m_worker,
-            "decodePacket",
-            Qt::QueuedConnection,
-            Q_ARG(QByteArray, packetData)
-        );
-
-        packetsProcessed++;
-    }
-
-    // 如果还有剩余数据没有处理完，会在下一次事件循环再次触发 readyRead
-    // 因为 QTcpSocket 在 buffer 里仍有可读数据，也可主动调用
-    // QMetaObject::invokeMethod(this, "onSocketReadyRead", Qt::QueuedConnection);
-    // 以便马上继续处理。但通常不必手动调用，只要还有数据可读，
-    // Qt 会自动再次发出 readyRead 或在下一次事件循环调度。
-}
-
-
-void VideoReceiver::onSocketError(QAbstractSocket::SocketError error)
-{
-    Q_UNUSED(error);
-    LogWidget::instance()->addLog(QString("onSocketError %1").arg(socket->errorString()), LogWidget::Warning);
-}
-
-// 【MOD】当工作线程解码出图像时调用
-void VideoReceiver::onFrameDecoded(const QImage& image)
-{
-    // 这里转发成对外可用的 signal，供 UI 使用
-    emit frameReady(image);
+    LogWidget::instance()->addLog("Network error: " + err, LogWidget::Warning);
+    emit networkError(err);
 }

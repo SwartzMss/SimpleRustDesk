@@ -45,6 +45,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>..\Depend\protobuf;..\Depend\ffmpeg\include;..\Depend\protobuf\include;..\Depend\RendezvousProto\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>..\Depend\ffmpeg\lib;..\Depend\RendezvousProto\lib;..\Depend\protobuf\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -62,7 +63,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
@@ -70,6 +71,7 @@
   <ItemGroup>
     <ClCompile Include="MessageHandler.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
+    <ClCompile Include="NetworkWorker.cpp" />
     <ClCompile Include="VideoDecoderWorker.cpp" />
     <ClCompile Include="VideoReceiver.cpp" />
     <ClCompile Include="VideoWidget.cpp" />
@@ -97,6 +99,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="VideoDecoderWorker.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="NetworkWorker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

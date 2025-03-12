@@ -2,40 +2,39 @@
 #define VIDEORECEIVER_H
 
 #include <QObject>
-#include <QtNetwork/QTcpSocket>
-#include <QByteArray>
-#include <QImage>
-#include <QUuid>
 #include <QThread>
-#include "VideoDecoderWorker.h"  // 【MOD】 引入独立的 Worker 头文件
+#include <QImage>
 
-class VideoReceiver : public QObject {
+class NetworkWorker;
+class VideoDecoderWorker;
+
+class VideoReceiver : public QObject
+{
 	Q_OBJECT
 public:
 	explicit VideoReceiver(QObject* parent = nullptr);
 	~VideoReceiver();
 
-	void connectToServer(const QString& host, quint16 port, const QString& uuid);
+	// 主线程调用，用于发起连接
+	void startConnect(const QString& host, quint16 port, const QString& uuid);
 
 signals:
+	// 当成功解码一帧时，把图像发给外层（比如给 VideoWidget 显示）
 	void frameReady(const QImage& image);
+	// 可以把 NetworkWorker 的错误转发出去
+	void networkError(const QString& error);
 
 private slots:
-	void onSocketConnected();
-	void onSocketReadyRead();
-	void onSocketError(QAbstractSocket::SocketError error);
-
-	// 【MOD】工作线程解码好帧后，交给本类的槽，再转发 frameReady
-	void onFrameDecoded(const QImage& image);
+	// 当解码线程发出 frameDecoded 时调用
+	void onFrameDecoded(const QImage& img);
+	// 当 NetworkWorker 报错时
+	void onNetworkError(const QString& err);
 
 private:
-	QTcpSocket* socket = nullptr;
-	QByteArray buffer;
-	QString relayUuid;
-
-	// 【MOD】新增：线程与 Worker
+	QThread* m_networkThread = nullptr;
 	QThread* m_decodeThread = nullptr;
-	VideoDecoderWorker* m_worker = nullptr;
+	NetworkWorker* m_netWorker = nullptr;
+	VideoDecoderWorker* m_decoderWorker = nullptr;
 };
 
 #endif // VIDEORECEIVER_H
