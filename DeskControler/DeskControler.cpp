@@ -1,5 +1,7 @@
 #include "DeskControler.h"
 #include "NetworkManager.h"
+#include "VideoReceiver.h"   // 【MOD】包含 VideoReceiver
+#include "VideoWidget.h"     // 【MOD】包含 VideoWidget
 #include <QMessageBox>
 #include "LogWidget.h"
 
@@ -46,24 +48,42 @@ void DeskControler::onConnectClicked()
 
 void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPort, int result)
 {
-	QString resultStr;
-	switch (result) {
-	case 0:
-		resultStr = "OK";
-		break;
-	case 1:
-		resultStr = "ID_NOT_EXIST";
-		break;
-	case 2:
-		resultStr = "OFFLINE";
-		break;
-	default:
-		resultStr = "UNKNOWN";
-		break;
-	}
+	if (result == 0) {
+		// 记录 relay 信息
+		LogWidget::instance()->addLog(QString("Relay Server: %1\nRelay Port: %2\nResult: OK")
+			.arg(relayServer).arg(relayPort), LogWidget::Info);
+		// 【MOD】启动视频接收流程
+		// 获取用户输入的 uuid
+		QString uuid = ui.lineEdit->text();
 
-	LogWidget::instance()->addLog(QString("Relay Server: %1\nRelay Port: %2\nResult: %3")
-		.arg(relayServer).arg(relayPort).arg(resultStr), LogWidget::Info);
+		// 创建 VideoReceiver 和 VideoWidget 实例
+		VideoReceiver* videoReceiver = new VideoReceiver(); // 无父对象，由应用管理生命周期
+		VideoWidget* videoWidget = new VideoWidget();         // 独立窗口
+		// 将解码后的帧显示到 VideoWidget
+		connect(videoReceiver, &VideoReceiver::frameReady, videoWidget, &VideoWidget::setFrame);
+
+		// 显示 VideoWidget（它会根据接收到的帧调整窗口大小）
+		videoWidget->show();
+
+		// 连接到 relay 服务器，并在连接后自动发送 RequestRelay 消息
+		videoReceiver->connectToServer(relayServer, static_cast<quint16>(relayPort), uuid);
+	}
+	else {
+		QString resultStr;
+		switch (result) {
+		case 1:
+			resultStr = "ID_NOT_EXIST";
+			break;
+		case 2:
+			resultStr = "OFFLINE";
+			break;
+		default:
+			resultStr = "UNKNOWN";
+			break;
+		}
+		LogWidget::instance()->addLog(QString("Relay Server: %1\nRelay Port: %2\nResult: %3")
+			.arg(relayServer).arg(relayPort).arg(resultStr), LogWidget::Info);
+	}
 }
 
 void DeskControler::onNetworkError(const QString& error)
