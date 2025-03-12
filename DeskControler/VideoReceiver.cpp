@@ -1,12 +1,13 @@
 #include "VideoReceiver.h"
 #include <QDebug>
-#include <QtEndian>  // ÓÃÓÚ qFromBigEndian
+#include <QtEndian>
+#include "rendezvous.pb.h"  // ã€MODã€‘åŒ…å« protobuf æ¶ˆæ¯å®šä¹‰
 
 VideoReceiver::VideoReceiver(QObject* parent)
 	: QObject(parent), socket(nullptr), codec(nullptr), codecCtx(nullptr),
-	frame(nullptr), swsCtx(nullptr)
+	  frame(nullptr), swsCtx(nullptr)
 {
-	// ²éÕÒ H264 ½âÂëÆ÷
+	// æŸ¥æ‰¾ H264 è§£ç å™¨
 	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
 	if (!codec) {
 		qFatal("H264 decoder not found");
@@ -38,32 +39,57 @@ VideoReceiver::~VideoReceiver()
 		avcodec_free_context(&codecCtx);
 }
 
-void VideoReceiver::connectToServer(const QString& host, quint16 port)
+// ã€MODã€‘ä¿®æ”¹ connectToServerï¼Œå¢åŠ  uuid å‚æ•°ï¼Œä¿å­˜ uuid å¹¶è¿æ¥ relay æœåŠ¡å™¨
+void VideoReceiver::connectToServer(const QString& host, quint16 port, const QString& uuid)
 {
+	relayUuid = uuid; // ä¿å­˜ç”¨äº RequestRelay çš„ uuid
 	socket = new QTcpSocket(this);
+	// è¿æ¥ä¿¡å·ï¼šè¿æ¥æˆåŠŸã€æ•°æ®å°±ç»ªã€é”™è¯¯
+	connect(socket, &QTcpSocket::connected, this, &VideoReceiver::onSocketConnected);
 	connect(socket, &QTcpSocket::readyRead, this, &VideoReceiver::onSocketReadyRead);
-	connect(socket, &QTcpSocket::errorOccurred,
-		this, &VideoReceiver::onSocketError);
+	connect(socket, &QTcpSocket::errorOccurred, this, &VideoReceiver::onSocketError);
 	socket->connectToHost(host, port);
+}
+
+// ã€MODã€‘å½“è¿æ¥å»ºç«‹åï¼Œæ„é€ å¹¶å‘é€ RequestRelay æ¶ˆæ¯
+void VideoReceiver::onSocketConnected()
+{
+	// æ„é€  RequestRelay æ¶ˆæ¯
+	RendezvousMessage msg;
+	RequestRelay* req = msg.mutable_request_relay();
+	// ç”Ÿæˆéšæœº idï¼Œå¹¶ä½¿ç”¨ relayUuid ä½œä¸º uuid
+	QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	req->set_id(id.toUtf8().constData(), id.toUtf8().size());
+	req->set_uuid(relayUuid.toUtf8().constData(), relayUuid.toUtf8().size());
+
+	std::string outStr;
+	if (!msg.SerializeToString(&outStr)) {
+		qWarning() << "Failed to serialize RequestRelay message";
+		return;
+	}
+	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
+	socket->write(data);
+	socket->flush();
+	qDebug() << "Sent RequestRelay message with id:" << id << "uuid:" << relayUuid;
 }
 
 void VideoReceiver::onSocketReadyRead()
 {
-	// ¶ÁÈ¡ËùÓĞÊı¾İ²¢×·¼Óµ½ buffer ÖĞ
+	// è¯»å–æ‰€æœ‰æ•°æ®å¹¶è¿½åŠ åˆ° buffer ä¸­
 	buffer.append(socket->readAll());
 
-	// Ğ­ÒéÔ¼¶¨£ºÊı¾İ°ü¸ñÊ½Îª [4×Ö½ÚÍøÂçĞò°ü³¤] + [°üÊı¾İ]
+	// åè®®çº¦å®šï¼šæ•°æ®åŒ…æ ¼å¼ä¸º [4å­—èŠ‚ç½‘ç»œåºåŒ…é•¿] + [åŒ…æ•°æ®]
 	while (buffer.size() >= 4) {
 		quint32 packetSize;
 		memcpy(&packetSize, buffer.constData(), 4);
 		packetSize = qFromBigEndian(packetSize);
 		if (buffer.size() < 4 + static_cast<int>(packetSize))
-			break; // Êı¾İ²»¹»£¬µÈ´ı¸ü¶àÊı¾İ
+			break; // æ•°æ®ä¸å¤Ÿï¼Œç­‰å¾…æ›´å¤šæ•°æ®
 
 		QByteArray packetData = buffer.mid(4, packetSize);
 		buffer.remove(0, 4 + packetSize);
 
-		// Ê¹ÓÃ FFmpeg ½øĞĞ½âÂë£¬Ìæ»» av_init_packet
+		// ä½¿ç”¨ FFmpeg è¿›è¡Œè§£ç 
 		AVPacket* pkt = av_packet_alloc();
 		if (!pkt) {
 			qWarning() << "Could not allocate AVPacket";
@@ -78,7 +104,7 @@ void VideoReceiver::onSocketReadyRead()
 			av_packet_free(&pkt);
 			continue;
 		}
-		// ³¢ÊÔ½ÓÊÕËùÓĞ½âÂë³öµÄÖ¡
+		// å°è¯•æ¥æ”¶æ‰€æœ‰è§£ç å‡ºçš„å¸§
 		while (true) {
 			ret = avcodec_receive_frame(codecCtx, frame);
 			if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
@@ -87,27 +113,27 @@ void VideoReceiver::onSocketReadyRead()
 				qWarning() << "Error during decoding";
 				break;
 			}
-			// µÃµ½½âÂëÖ¡£¬´ËÊ±¸ñÊ½Îª YUV420P
+			// å¾—åˆ°è§£ç å¸§ï¼Œæ­¤æ—¶æ ¼å¼ä¸º YUV420P
 
-			// ³õÊ¼»¯×ª»»ÉÏÏÂÎÄ£¨Èç¹û»¹Ã»´´½¨£©½« YUV420P ×ªÎª RGBA ¸ñÊ½
+			// åˆå§‹åŒ–è½¬æ¢ä¸Šä¸‹æ–‡ï¼ˆå¦‚æœè¿˜æ²¡åˆ›å»ºï¼‰å°† YUV420P è½¬ä¸º RGBA æ ¼å¼
 			if (!swsCtx) {
 				swsCtx = sws_getContext(frame->width, frame->height, codecCtx->pix_fmt,
 					frame->width, frame->height, AV_PIX_FMT_RGBA,
 					SWS_BILINEAR, nullptr, nullptr, nullptr);
 			}
-			// ¼ÆËãÄ¿±ê»º³åÇø´óĞ¡
+			// è®¡ç®—ç›®æ ‡ç¼“å†²åŒºå¤§å°
 			int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width, frame->height, 1);
 			QByteArray imgBuffer(numBytes, 0);
 			uint8_t* destData[4] = { reinterpret_cast<uint8_t*>(imgBuffer.data()), nullptr, nullptr, nullptr };
 			int destLinesize[4] = { 4 * frame->width, 0, 0, 0 };
 
-			// ×ª»»Îª RGBA ¸ñÊ½
+			// è½¬æ¢ä¸º RGBA æ ¼å¼
 			sws_scale(swsCtx, frame->data, frame->linesize, 0, frame->height, destData, destLinesize);
 
-			// ¹¹Ôì QImage£¬´Ë´¦ Format_RGBA8888 Óë RGBA ¸ñÊ½¶ÔÓ¦
+			// æ„é€  QImageï¼Œæ­¤å¤„ Format_RGBA8888 ä¸ RGBA æ ¼å¼å¯¹åº”
 			QImage image(reinterpret_cast<const uchar*>(imgBuffer.constData()),
 				frame->width, frame->height, QImage::Format_RGBA8888);
-			// ¸´ÖÆÒ»·İ£¬È·±£ÄÚ´æ°²È«
+			// å¤åˆ¶ä¸€ä»½ï¼Œç¡®ä¿å†…å­˜å®‰å…¨
 			QImage finalImage = image.copy();
 			emit frameReady(finalImage);
 		}
