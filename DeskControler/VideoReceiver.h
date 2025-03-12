@@ -5,48 +5,37 @@
 #include <QtNetwork/QTcpSocket>
 #include <QByteArray>
 #include <QImage>
-#include <QUuid>  // 【MOD】用于生成 id
-
-// FFmpeg includes
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/opt.h>
-#include <libswscale/swscale.h>
-}
+#include <QUuid>
+#include <QThread>
+#include "VideoDecoderWorker.h"  // 【MOD】 引入独立的 Worker 头文件
 
 class VideoReceiver : public QObject {
 	Q_OBJECT
 public:
-	// 【MOD】修改构造函数不变
 	explicit VideoReceiver(QObject* parent = nullptr);
 	~VideoReceiver();
 
-	// 【MOD】重载 connectToServer，增加 uuid 参数，用于构造 RequestRelay 消息
 	void connectToServer(const QString& host, quint16 port, const QString& uuid);
 
 signals:
-	// 当解码出一帧图像时发出信号
 	void frameReady(const QImage& image);
 
 private slots:
-	void onSocketConnected(); // 【MOD】新增：连接建立后发送 RequestRelay 消息
+	void onSocketConnected();
 	void onSocketReadyRead();
 	void onSocketError(QAbstractSocket::SocketError error);
 
+	// 【MOD】工作线程解码好帧后，交给本类的槽，再转发 frameReady
+	void onFrameDecoded(const QImage& image);
+
 private:
-	QTcpSocket* socket;
-	QByteArray buffer; // 用于存储接收的数据
-
-	// FFmpeg 解码相关成员
-	const AVCodec* codec;
-	AVCodecContext* codecCtx;
-	AVFrame* frame;
-	// 转换上下文，将 YUV420P 转为 RGBA（QImage 使用的格式）
-	SwsContext* swsCtx;
-
-	// 【MOD】保存发送 RequestRelay 消息时需要的 uuid
+	QTcpSocket* socket = nullptr;
+	QByteArray buffer;
 	QString relayUuid;
+
+	// 【MOD】新增：线程与 Worker
+	QThread* m_decodeThread = nullptr;
+	VideoDecoderWorker* m_worker = nullptr;
 };
 
 #endif // VIDEORECEIVER_H

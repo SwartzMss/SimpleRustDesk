@@ -1,146 +1,119 @@
 #include "VideoReceiver.h"
 #include "LogWidget.h"
 #include <QtEndian>
-#include "rendezvous.pb.h"  // 【MOD】包含 protobuf 消息定义
+#include "rendezvous.pb.h"
 
 VideoReceiver::VideoReceiver(QObject* parent)
-	: QObject(parent), socket(nullptr), codec(nullptr), codecCtx(nullptr),
-	  frame(nullptr), swsCtx(nullptr)
+    : QObject(parent),
+    socket(nullptr)
 {
-	// 查找 H264 解码器
-	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-	if (!codec) {
-		qFatal("H264 decoder not found");
-	}
-	codecCtx = avcodec_alloc_context3(codec);
-	if (!codecCtx) {
-		qFatal("Could not allocate video codec context");
-	}
-	if (avcodec_open2(codecCtx, codec, nullptr) < 0) {
-		qFatal("Could not open codec");
-	}
-	frame = av_frame_alloc();
-	if (!frame) {
-		qFatal("Could not allocate video frame");
-	}
+    // 【MOD】创建解码线程 & Worker
+    m_decodeThread = new QThread(this);
+    m_worker = new VideoDecoderWorker();     // 无父对象，后面手动 moveToThread
+    m_worker->moveToThread(m_decodeThread);
+
+    // 线程结束自动清理 Worker
+    connect(m_decodeThread, &QThread::finished, m_worker, &QObject::deleteLater);
+
+    // 连接 Worker 的解码完成信号到本类的 onFrameDecoded
+    connect(m_worker, &VideoDecoderWorker::frameDecoded,
+        this, &VideoReceiver::onFrameDecoded);
+
+    m_decodeThread->start();
 }
 
 VideoReceiver::~VideoReceiver()
 {
-	if (socket) {
-		socket->disconnectFromHost();
-		socket->deleteLater();
-	}
-	if (swsCtx)
-		sws_freeContext(swsCtx);
-	if (frame)
-		av_frame_free(&frame);
-	if (codecCtx)
-		avcodec_free_context(&codecCtx);
+    if (m_decodeThread) {
+        m_decodeThread->quit();
+        m_decodeThread->wait();  // 等待线程真正退出
+    }
+    if (socket) {
+        socket->disconnectFromHost();
+        socket->deleteLater();
+        socket = nullptr;
+    }
 }
 
-// 【MOD】修改 connectToServer，增加 uuid 参数，保存 uuid 并连接 relay 服务器
 void VideoReceiver::connectToServer(const QString& host, quint16 port, const QString& uuid)
 {
-	relayUuid = uuid; // 保存用于 RequestRelay 的 uuid
-	socket = new QTcpSocket(this);
-	// 连接信号：连接成功、数据就绪、错误
-	connect(socket, &QTcpSocket::connected, this, &VideoReceiver::onSocketConnected);
-	connect(socket, &QTcpSocket::readyRead, this, &VideoReceiver::onSocketReadyRead);
-	connect(socket, &QTcpSocket::errorOccurred, this, &VideoReceiver::onSocketError);
-	socket->connectToHost(host, port);
+    relayUuid = uuid;
+    socket = new QTcpSocket(this);
+    connect(socket, &QTcpSocket::connected, this, &VideoReceiver::onSocketConnected);
+    connect(socket, &QTcpSocket::readyRead, this, &VideoReceiver::onSocketReadyRead);
+    connect(socket, &QTcpSocket::errorOccurred, this, &VideoReceiver::onSocketError);
+
+    socket->connectToHost(host, port);
 }
 
-// 【MOD】当连接建立后，构造并发送 RequestRelay 消息
 void VideoReceiver::onSocketConnected()
 {
-	// 构造 RequestRelay 消息
-	RendezvousMessage msg;
-	RequestRelay* req = msg.mutable_request_relay();
-	req->set_uuid(relayUuid.toUtf8().constData(), relayUuid.toUtf8().size());
+    // 发送 RequestRelay 消息（保持原逻辑）
+    RendezvousMessage msg;
+    RequestRelay* req = msg.mutable_request_relay();
+    req->set_uuid(relayUuid.toUtf8().constData(), relayUuid.toUtf8().size());
 
-	std::string outStr;
-	if (!msg.SerializeToString(&outStr)) {
-		qWarning() << "Failed to serialize RequestRelay message";
-		return;
-	}
-	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
-	socket->write(data);
-	socket->flush();
-
-	LogWidget::instance()->addLog(QString("Sent RequestRelay message with id %1").arg(relayUuid));
+    std::string outStr;
+    if (!msg.SerializeToString(&outStr)) {
+        LogWidget::instance()->addLog(QString("Failed to serialize RequestRelay message"), LogWidget::Error);
+        return;
+    }
+    QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
+    socket->write(data);
+    socket->flush();
 }
 
 void VideoReceiver::onSocketReadyRead()
 {
-	// 读取所有数据并追加到 buffer 中
-	buffer.append(socket->readAll());
+    buffer.append(socket->readAll());
 
-	// 协议约定：数据包格式为 [4字节网络序包长] + [包数据]
-	while (buffer.size() >= 4) {
-		quint32 packetSize;
-		memcpy(&packetSize, buffer.constData(), 4);
-		packetSize = qFromBigEndian(packetSize);
-		if (buffer.size() < 4 + static_cast<int>(packetSize))
-			break; // 数据不够，等待更多数据
+    int packetsProcessed = 0;               // 【MOD】新增计数
+    const int MAX_PACKETS_PER_CYCLE = 10;   // 每轮最多处理 10 个包，随需求调整
 
-		QByteArray packetData = buffer.mid(4, packetSize);
-		buffer.remove(0, 4 + packetSize);
+    while (buffer.size() >= 4) {
+        // 如果这次已经处理了 10 个包，就让出主线程，等下一次事件循环
+        if (packetsProcessed >= MAX_PACKETS_PER_CYCLE) {
+            break;
+        }
 
-		// 使用 FFmpeg 进行解码
-		AVPacket* pkt = av_packet_alloc();
-		if (!pkt) {
-			qWarning() << "Could not allocate AVPacket";
-			continue;
-		}
-		pkt->data = reinterpret_cast<uint8_t*>(packetData.data());
-		pkt->size = packetData.size();
+        quint32 packetSize;
+        memcpy(&packetSize, buffer.constData(), 4);
+        packetSize = qFromBigEndian(packetSize);
+        if (buffer.size() < 4 + static_cast<int>(packetSize)) {
+            break;
+        }
 
-		int ret = avcodec_send_packet(codecCtx, pkt);
-		if (ret < 0) {
-			qWarning() << "Error sending packet for decoding";
-			av_packet_free(&pkt);
-			continue;
-		}
-		// 尝试接收所有解码出的帧
-		while (true) {
-			ret = avcodec_receive_frame(codecCtx, frame);
-			if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-				break;
-			else if (ret < 0) {
-				qWarning() << "Error during decoding";
-				break;
-			}
-			// 得到解码帧，此时格式为 YUV420P
+        QByteArray packetData = buffer.mid(4, packetSize);
+        buffer.remove(0, 4 + packetSize);
 
-			// 初始化转换上下文（如果还没创建）将 YUV420P 转为 RGBA 格式
-			if (!swsCtx) {
-				swsCtx = sws_getContext(frame->width, frame->height, codecCtx->pix_fmt,
-					frame->width, frame->height, AV_PIX_FMT_RGBA,
-					SWS_BILINEAR, nullptr, nullptr, nullptr);
-			}
-			// 计算目标缓冲区大小
-			int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGBA, frame->width, frame->height, 1);
-			QByteArray imgBuffer(numBytes, 0);
-			uint8_t* destData[4] = { reinterpret_cast<uint8_t*>(imgBuffer.data()), nullptr, nullptr, nullptr };
-			int destLinesize[4] = { 4 * frame->width, 0, 0, 0 };
+        // 投递给解码线程
+        QMetaObject::invokeMethod(
+            m_worker,
+            "decodePacket",
+            Qt::QueuedConnection,
+            Q_ARG(QByteArray, packetData)
+        );
 
-			// 转换为 RGBA 格式
-			sws_scale(swsCtx, frame->data, frame->linesize, 0, frame->height, destData, destLinesize);
+        packetsProcessed++;
+    }
 
-			// 构造 QImage，此处 Format_RGBA8888 与 RGBA 格式对应
-			QImage image(reinterpret_cast<const uchar*>(imgBuffer.constData()),
-				frame->width, frame->height, QImage::Format_RGBA8888);
-			// 复制一份，确保内存安全
-			QImage finalImage = image.copy();
-			emit frameReady(finalImage);
-		}
-		av_packet_free(&pkt);
-	}
+    // 如果还有剩余数据没有处理完，会在下一次事件循环再次触发 readyRead
+    // 因为 QTcpSocket 在 buffer 里仍有可读数据，也可主动调用
+    // QMetaObject::invokeMethod(this, "onSocketReadyRead", Qt::QueuedConnection);
+    // 以便马上继续处理。但通常不必手动调用，只要还有数据可读，
+    // Qt 会自动再次发出 readyRead 或在下一次事件循环调度。
 }
+
 
 void VideoReceiver::onSocketError(QAbstractSocket::SocketError error)
 {
-	Q_UNUSED(error);
-	qWarning() << "Socket error:" << socket->errorString();
+    Q_UNUSED(error);
+    LogWidget::instance()->addLog(QString("onSocketError %1").arg(socket->errorString()), LogWidget::Warning);
+}
+
+// 【MOD】当工作线程解码出图像时调用
+void VideoReceiver::onFrameDecoded(const QImage& image)
+{
+    // 这里转发成对外可用的 signal，供 UI 使用
+    emit frameReady(image);
 }

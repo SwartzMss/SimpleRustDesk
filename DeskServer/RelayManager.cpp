@@ -97,12 +97,32 @@ void RelayManager::onSocketError(QAbstractSocket::SocketError error)
 
 void RelayManager::onEncodedPacketReady(const QByteArray& packet)
 {
-    // Forward the encoded packet only if the TCP connection is active.
-    if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
-        m_socket->write(packet);
-        m_socket->flush();
-        LogWidget::instance()->addLog("RelayManager: Forwarded encoded packet", LogWidget::Info);
-    } else {
-        LogWidget::instance()->addLog("RelayManager: Cannot forward packet, TCP connection not established", LogWidget::Warning);
-    }
+	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
+		// 先构造 4 字节网络序（大端序）的帧长度
+		quint32 packetSize = static_cast<quint32>(packet.size());
+		quint32 bigEndianSize = qToBigEndian(packetSize);
+
+		// 将这4个字节放到一个 QByteArray 里
+		QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+		// 组合： [长度头][帧数据]
+		QByteArray fullData;
+		fullData.append(header);
+		fullData.append(packet);
+
+		// 发送
+		m_socket->write(fullData);
+		m_socket->flush();
+
+		LogWidget::instance()->addLog(
+			QString("RelayManager: Forwarded encoded packet (size %1 + 4-byte header)").arg(packet.size()),
+			LogWidget::Info
+		);
+	}
+	else {
+		LogWidget::instance()->addLog(
+			"RelayManager: Cannot forward packet, TCP connection not established",
+			LogWidget::Warning
+		);
+	}
 }

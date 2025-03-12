@@ -70,6 +70,7 @@
   <ItemGroup>
     <ClCompile Include="MessageHandler.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
+    <ClCompile Include="VideoDecoderWorker.cpp" />
     <ClCompile Include="VideoReceiver.cpp" />
     <ClCompile Include="VideoWidget.cpp" />
     <QtRcc Include="DeskControler.qrc" />
@@ -93,6 +94,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="VideoWidget.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="VideoDecoderWorker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

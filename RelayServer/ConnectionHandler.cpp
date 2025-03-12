@@ -76,45 +76,45 @@ QTcpSocket* ConnectionHandler::socket()
 	return &m_socket;
 }
 
-// 在发送端 先写入消息的长度（例如用 QDataStream 写入 4 字节的整数，使用网络字节序），再写入实际的 protobuf 消息数据
+
+
 void ConnectionHandler::onReadyRead()
 {
 	QByteArray data = m_socket.readAll();
-	processData(data);
-}
 
-
-void ConnectionHandler::processData(const QByteArray& data)
-{
-
-	RendezvousMessage msg;
-	if (!msg.ParseFromArray(data.constData(), data.size())) {
-		LogWidget::instance()->addLog("Failed to parse RendezvousMessage from data", LogWidget::Warning);
-		return;
-	}
-	// 根据 oneof 字段判断消息类型
-	if (msg.has_request_relay()) {
-		// 如果还没有配对，认为收到的是握手数据（后续数据直接转发）
-		if (!m_peer)
-		{
-			RequestRelay requestRelay = msg.request_relay();
-			QString uuid = QString::fromStdString(requestRelay.uuid());
-			if (uuid.isEmpty()) {
-				LogWidget::instance()->addLog("Received relay request with empty UUID", LogWidget::Error);
+	// 如果还没配对（还没处理握手），就先尝试解析握手
+	if (!m_peer) {
+		RendezvousMessage msg;
+		// 尝试将所有数据当作一个消息来解析
+		if (msg.ParseFromArray(data.constData(), data.size())) {
+			if (msg.has_request_relay()) {
+				RequestRelay requestRelay = msg.request_relay();
+				QString uuid = QString::fromStdString(requestRelay.uuid());
+				if (uuid.isEmpty()) {
+					LogWidget::instance()->addLog("Received empty UUID in RequestRelay", LogWidget::Error);
+					return;
+				}
+				// 通知外部“有人请求中继”，由外部去调用 pairWith() 或其它逻辑
+				emit relayRequestReceived(uuid);
+				// --- 到这里握手就算成功了 ---
+				// 如果接下来又读到其他数据，那就等下一次 onReadyRead() 再处理
 				return;
 			}
-			emit relayRequestReceived(uuid);
-
-		}
-		else
-		{
-			// 已配对后，收到的数据直接转发给对端
-			if (m_peer && m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
-				m_peer->socket()->write(data);
+			else {
+				LogWidget::instance()->addLog("Unknown or unexpected RendezvousMessage type", LogWidget::Warning);
+				return;
 			}
+		}
+		else {
+			// 无法解析成 RendezvousMessage；说明这不是握手期合法数据
+			LogWidget::instance()->addLog("Failed to parse RendezvousMessage from data (handshake stage)", LogWidget::Warning);
+			return;
 		}
 	}
 	else {
-		LogWidget::instance()->addLog("Unknown message type in RendezvousMessage", LogWidget::Warning);
+		// 已配对，后续直接转发
+		if (m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
+			m_peer->socket()->write(data);
+		}
 	}
 }

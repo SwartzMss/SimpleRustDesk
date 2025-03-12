@@ -45,9 +45,6 @@ private:
 	QTimer m_timer;
 	// 配对的对端连接
 	std::shared_ptr<ConnectionHandler> m_peer;
-
-	// 解析完整消息
-	void processData(const QByteArray& data);
 };
 
 #endif // CONNECTIONHANDLER_H
