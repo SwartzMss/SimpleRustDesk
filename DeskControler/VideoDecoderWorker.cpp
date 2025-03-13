@@ -45,7 +45,6 @@ void VideoDecoderWorker::decodePacket(const QByteArray& packetData)
 {
 
 	LogWidget::instance()->addLog(QString("decodePacket"), LogWidget::Info);
-	return;
 	// ½« packetData ¿½±´µ½ AVPacket
 	AVPacket* pkt = av_packet_alloc();
 	if (!pkt) {

@@ -25,6 +25,7 @@ bool ConnectionHandler::start(qintptr socketDescriptor)
 	}
 	// 连接数据到达和超时的信号槽
 	connect(&m_socket, &QTcpSocket::readyRead, this, &ConnectionHandler::onReadyRead);
+	connect(&m_socket, &QTcpSocket::disconnected, this, &ConnectionHandler::disconnectFromPeer);
 	connect(&m_timer, &QTimer::timeout, this, &ConnectionHandler::onTimeout);
 	LogWidget::instance()->addLog(QString("Starting connection handler for %1").arg(m_socket.peerAddress().toString()), LogWidget::Info);
 	return true;
@@ -53,19 +54,27 @@ void ConnectionHandler::onTimeout()
 {
 	LogWidget::instance()->addLog(QString("Connection timed out: %1").arg(m_socket.peerAddress().toString()), LogWidget::Warning);
 	disconnectFromPeer();
-	m_socket.disconnectFromHost();
 }
 
 void ConnectionHandler::disconnectFromPeer()
 {
-	if (m_socket.state() == QAbstractSocket::ConnectedState) {
-		m_socket.disconnectFromHost();
-		if (m_socket.state() != QAbstractSocket::UnconnectedState) {
-			m_socket.waitForDisconnected(3000);
+	if (m_isDisconnecting)
+		return;
+	m_isDisconnecting = true;
+
+	m_timer.stop();
+	// 断开所有与 m_socket 相关的信号连接，防止后续触发 onReadyRead 等槽
+	m_socket.disconnect();
+
+	// 立即中止连接，清除缓冲区，避免后续处理残留数据
+	m_socket.abort();
+
+	// 如果有配对的对端连接，则主动让其断开（防止死循环，检查 m_isDisconnecting 标记）
+	if (m_peer) 
+	{
+		if (!m_peer->m_isDisconnecting) {
+			m_peer->disconnectFromPeer();
 		}
-	}
-	if (m_peer) {
-		m_peer->m_peer.reset();
 		m_peer.reset();
 	}
 	LogWidget::instance()->addLog(QString("Disconnected: %1").arg(m_socket.peerAddress().toString()), LogWidget::Info);
@@ -80,6 +89,8 @@ QTcpSocket* ConnectionHandler::socket()
 
 void ConnectionHandler::onReadyRead()
 {
+	if (m_isDisconnecting)
+		return;
 	QByteArray data = m_socket.readAll();
 
 	// 如果还没配对（还没处理握手），就先尝试解析握手
@@ -107,7 +118,7 @@ void ConnectionHandler::onReadyRead()
 		}
 		else {
 			// 无法解析成 RendezvousMessage；说明这不是握手期合法数据
-			LogWidget::instance()->addLog("Failed to parse RendezvousMessage from data (handshake stage)", LogWidget::Warning);
+			//LogWidget::instance()->addLog("Failed to parse RendezvousMessage from data (handshake stage)", LogWidget::Warning);
 			return;
 		}
 	}

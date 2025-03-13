@@ -30,8 +30,6 @@ DeskControler::DeskControler(QWidget* parent)
 
 DeskControler::~DeskControler()
 {
-	// 如果需要，手动释放 networkManager（这里用 parent 管理就不必）
-	// delete networkManager;
 }
 
 void DeskControler::onConnectClicked()
@@ -44,16 +42,17 @@ void DeskControler::onConnectClicked()
 		LogWidget::instance()->addLog("please check IP / Port / Uuid", LogWidget::Info);
 		return;
 	}
+	ui.pushButton->setEnabled(false);
 
 	// 连接到服务端（阻塞 3 秒等结果），失败则提示
 	if (!networkManager->connectToServer(ip, port)) {
 		LogWidget::instance()->addLog("connect Server failed", LogWidget::Warning);
+		ui.pushButton->setEnabled(true);
 		return;
 	}
 	// 连接成功后，发送 PunchHoleRequest
 	networkManager->sendPunchHoleRequest(uuid);
 
-	ui.pushButton->setEnabled(false);
 }
 
 void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPort, int result)
@@ -66,11 +65,18 @@ void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPor
 	default: resultStr = "UNKNOWN";      break;
 	}
 
-	LogWidget::instance()->addLog(
-		QString("Relay Server: %1\nRelay Port: %2\nResult: %3")
-		.arg(relayServer).arg(relayPort).arg(resultStr),
-		LogWidget::Info
-	);
+	if (result != 0) {
+		LogWidget::instance()->addLog(
+			QString("Relay Server: %1\nRelay Port: %2\nResult: %3")
+			.arg(relayServer).arg(relayPort).arg(resultStr),
+			LogWidget::Info
+		);
+		ui.ipLineEdit_->setEnabled(true);
+		ui.portLineEdit_->setEnabled(true);
+		ui.lineEdit->setEnabled(true);
+		ui.pushButton->setEnabled(true);
+		return;
+	}
 
 	if (result == 0) {  // OK
 		LogWidget::instance()->addLog(
@@ -84,18 +90,31 @@ void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPor
 		// 创建 VideoReceiver 和 VideoWidget，用来连接 Relay 并显示视频
 		VideoReceiver* videoReceiver = new VideoReceiver();  // 由应用管理生命周期
 		VideoWidget* videoWidget = new VideoWidget();     // 独立窗口
+		videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+
 
 		// 当解码出帧时，发送到 videoWidget 显示
 		connect(videoReceiver, &VideoReceiver::frameReady,
 			videoWidget, &VideoWidget::setFrame);
 
+		connect(videoWidget, &QObject::destroyed, [this, videoReceiver]() {
+			videoReceiver->deleteLater();
+			ui.ipLineEdit_->setEnabled(true);
+			ui.portLineEdit_->setEnabled(true);
+			ui.lineEdit->setEnabled(true);
+			ui.pushButton->setEnabled(true);
+			});
+
+		ui.ipLineEdit_->setEnabled(false);
+		ui.portLineEdit_->setEnabled(false);
+		ui.lineEdit->setEnabled(false);
+		ui.pushButton->setEnabled(false);
 		videoWidget->show();
 
 		// 发起连接到 Relay 服务器
 		// （VideoReceiver 内部连接后会自动发送 RequestRelay）
 		videoReceiver->startConnect(relayServer, static_cast<quint16>(relayPort), uuid);
 	}
-	// 如果 result != 0，说明 uuid 不存在或对方不在线，也无需创建视频接收器
 }
 
 void DeskControler::onNetworkError(const QString& error)

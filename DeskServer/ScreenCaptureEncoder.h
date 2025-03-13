@@ -35,6 +35,8 @@ private slots:
 	void captureAndEncode();
 
 private:
+	void reinitializeEncoder(int newWidth, int newHeight);
+private:
 	// FFmpeg相关成员
 	const AVCodec* codec;
 	AVCodecContext* codecCtx;

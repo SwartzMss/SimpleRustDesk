@@ -27,7 +27,6 @@ signals:
 private slots:
 	void onSocketConnected();
 	void onReadyRead();
-	void onSocketError(QAbstractSocket::SocketError error);
 	void onSocketDisconnected();
 
 private:

@@ -45,6 +45,7 @@ private:
 	QTimer m_timer;
 	// 配对的对端连接
 	std::shared_ptr<ConnectionHandler> m_peer;
+	bool m_isDisconnecting = false;
 };
 
 #endif // CONNECTIONHANDLER_H

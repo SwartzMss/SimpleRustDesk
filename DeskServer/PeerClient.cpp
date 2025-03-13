@@ -79,7 +79,8 @@ void PeerClient::onConnected()
 	LogWidget::instance()->addLog("Connected successfully", LogWidget::Info);
 
 	// 生成 UUID 字符串并发送 RegisterPeer 消息
-	m_uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	static QString fixedUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	m_uuid = fixedUuid;
 	RegisterPeer regPeer;
 	regPeer.set_uuid(m_uuid.toStdString());
 

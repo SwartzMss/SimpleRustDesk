@@ -8,7 +8,6 @@ NetworkManager::NetworkManager(QObject* parent)
 	// 连接 QTcpSocket 信号
 	connect(socket, &QTcpSocket::connected, this, &NetworkManager::onSocketConnected);
 	connect(socket, &QTcpSocket::readyRead, this, &NetworkManager::onReadyRead);
-	connect(socket, &QTcpSocket::errorOccurred, this, &NetworkManager::onSocketError);
 	connect(socket, &QTcpSocket::disconnected, this, &NetworkManager::onSocketDisconnected);
 
 	// 将 MessageHandler 内部信号转发到本类信号
@@ -27,7 +26,7 @@ NetworkManager::~NetworkManager()
 bool NetworkManager::connectToServer(const QString& ip, quint16 port)
 {
 	socket->connectToHost(ip, port);
-	if (!socket->waitForConnected(3000)) 
+	if (!socket->waitForConnected(500)) 
 	{
 		return false;
 	}
@@ -54,11 +53,6 @@ void NetworkManager::onReadyRead()
 	messageHandler.processReceivedData(data);
 }
 
-void NetworkManager::onSocketError(QAbstractSocket::SocketError error)
-{
-	Q_UNUSED(error)
-		emit networkError(socket->errorString());
-}
 
 void NetworkManager::onSocketDisconnected()
 {

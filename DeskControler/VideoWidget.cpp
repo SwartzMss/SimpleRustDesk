@@ -10,7 +10,6 @@ VideoWidget::VideoWidget(QWidget* parent)
 
 void VideoWidget::setFrame(const QImage& image)
 {
-	QMutexLocker locker(&mutex);
 	currentFrame = image;
 	// [MOD] 根据解码后数据（图像）的尺寸调整窗口大小
 	if (!currentFrame.isNull()) {
@@ -24,7 +23,6 @@ void VideoWidget::paintEvent(QPaintEvent* event)
 {
 	Q_UNUSED(event);
 	QPainter painter(this);
-	QMutexLocker locker(&mutex);
 	if (!currentFrame.isNull()) {
 		// 按比例缩放图像以适应窗口大小
 		QImage scaled = currentFrame.scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
