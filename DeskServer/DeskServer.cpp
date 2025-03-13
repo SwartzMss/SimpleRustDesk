@@ -1,5 +1,7 @@
 #include "DeskServer.h"
 #include <QtNetwork/QHostAddress>
+#include <QUrl>
+#include <QtNetwork/QHostInfo>
 #include "LogWidget.h"
 
 DeskServer::DeskServer(QWidget* parent)
@@ -33,6 +35,22 @@ void DeskServer::onStartClicked()
 			return;
 		}
 
+		// 尝试解析用户输入，支持 URL 或域名格式
+		QUrl url = QUrl::fromUserInput(ip);
+		// 如果解析后的 host 不为空，说明输入了 URL 格式，取出 host，否则直接使用输入
+		QString host = url.host().isEmpty() ? ip : url.host();
+		QHostAddress resolvedAddress;
+		// 先尝试直接转换成 IP 地址
+		if (!resolvedAddress.setAddress(host)) {
+			// 如果转换失败，则进行 DNS 解析
+			QHostInfo info = QHostInfo::fromName(host);
+			if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
+				LogWidget::instance()->addLog("Failed to resolve IP: " + host, LogWidget::Error);
+				return;
+			}
+			resolvedAddress = info.addresses().first();
+		}
+
 		QString relayIP = ui.iPLineEdit_3->text().trimmed();
 		int relayPort = ui.portLineEdit_2->text().toInt();
 		if (relayIP.isEmpty() || relayPort <= 0) {
@@ -40,11 +58,25 @@ void DeskServer::onStartClicked()
 			return;
 		}
 
+		// 同样处理 Relay IP
+		QUrl relayUrl = QUrl::fromUserInput(relayIP);
+		QString relayHost = relayUrl.host().isEmpty() ? relayIP : relayUrl.host();
+		QHostAddress resolvedRelayAddress;
+		if (!resolvedRelayAddress.setAddress(relayHost)) {
+			QHostInfo info = QHostInfo::fromName(relayHost);
+			if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
+				LogWidget::instance()->addLog("Failed to resolve Relay IP: " + relayHost, LogWidget::Error);
+				return;
+			}
+			resolvedRelayAddress = info.addresses().first();
+		}
+
 		m_peerClient = new PeerClient(this);
-		m_peerClient->setRelayInfo(relayIP, relayPort);
+
+		m_peerClient->setRelayInfo(relayHost, relayPort);
 		connect(m_peerClient, &PeerClient::registrationResult, this, &DeskServer::onRegistrationResult);
 		connect(m_peerClient, &PeerClient::errorOccurred, this, &DeskServer::onClientError);
-		m_peerClient->start(QHostAddress(ip), static_cast<quint16>(port));
+		m_peerClient->start(resolvedAddress, static_cast<quint16>(port));
 		ui.iPLineEdit->setEnabled(false);
 		ui.portLineEdit_->setEnabled(false);
 		ui.iPLineEdit_3->setEnabled(false);
@@ -52,20 +84,19 @@ void DeskServer::onStartClicked()
 		ui.startButton_->setText("Stop");
 
 		m_relayPeerClient = new RelayPeerClient(this);
-		// 当收到 heartbeat 回复时，更新 Relay 状态为 Online
 		connect(m_relayPeerClient, &RelayPeerClient::heartbeatResponseReceived, this, [this]() {
 			m_peerClient->setRelayStatus(true);
 			ui.label_8->setText("Online");
 			});
-		// 当出现错误时，记录错误并可将状态设置为 Offline
 		connect(m_relayPeerClient, &RelayPeerClient::errorOccurred, this, [this](const QString& errorString) {
-			ui.label_8->setText("Offline");
 			m_peerClient->setRelayStatus(false);
+			ui.label_8->setText("Offline");
 			LogWidget::instance()->addLog(errorString, LogWidget::Warning);
 			});
-		m_relayPeerClient->start(QHostAddress(relayIP), static_cast<quint16>(relayPort));
+		m_relayPeerClient->start(resolvedRelayAddress, static_cast<quint16>(relayPort));
 	}
 	else {
+		// 停止逻辑
 		m_peerClient->stop();
 		m_peerClient->deleteLater();
 		m_peerClient = nullptr;
