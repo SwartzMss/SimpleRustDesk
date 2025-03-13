@@ -1,6 +1,8 @@
 #include "PeerClient.h"
 #include "LogWidget.h"
 #include <QUuid>
+#include <QUrl>
+#include <QtNetwork/QHostInfo>
 
 PeerClient::PeerClient(QObject* parent)
 	: QObject(parent), m_socket(nullptr), m_serverPort(0), m_connected(false), m_isRelayOnline(false)
@@ -156,8 +158,22 @@ void PeerClient::onReadyRead()
 			if (!m_relayManager) {
 				m_relayManager = new RelayManager(this);
 			}
-			// Use the current relay info, the generated UUID, and the punch hole id as parameters.
-			m_relayManager->start(QHostAddress(m_relayIP), m_relayPort, m_uuid);
+			QUrl relayUrl = QUrl::fromUserInput(m_relayIP);
+			QString relayHost = relayUrl.host().isEmpty() ? m_relayIP : relayUrl.host();
+
+			QHostAddress resolvedRelayAddress;
+			if (!resolvedRelayAddress.setAddress(relayHost)) {
+				// 如果直接转换失败，则尝试 DNS 解析
+				QHostInfo info = QHostInfo::fromName(relayHost);
+				if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
+					// 可以在这里记录错误日志或返回错误
+					LogWidget::instance()->addLog("Failed to resolve Relay IP: " + relayHost, LogWidget::Error);
+					return;
+				}
+				resolvedRelayAddress = info.addresses().first();
+			}
+
+			m_relayManager->start(resolvedRelayAddress, m_relayPort, m_uuid);
 		}
 	}
 	else {

@@ -128,7 +128,7 @@ void RendezvousServer::handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket*
 
 		PunchHoleResponse response;
 		response.set_relay_port(req.relay_port());
-		response.set_result(PunchHoleResponse::OK);
+		response.set_result(req.result() == PunchHoleSent_Result_OK ? PunchHoleResponse_Result_OK:PunchHoleResponse_Result_OFFLINE);
 		response.set_relay_server(req.relay_server());
 
 		RendezvousMessage msg;
