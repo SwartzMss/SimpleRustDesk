@@ -17,7 +17,10 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 
 - **RelayServer（中继服务器）**  
   RelayServer 提供数据转发服务，确保远程控制过程中的数据能够顺畅传输。
+  
+## 系统 UML 图
 
+![系统 UML](diagrams/output/概述.svg)
 
 ## 注意事项
 
