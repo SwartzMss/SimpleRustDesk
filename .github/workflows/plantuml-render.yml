@@ -1,4 +1,4 @@
-name: Render PlantUML Diagrams
+name: Diagrams
 
 on:
   push:
