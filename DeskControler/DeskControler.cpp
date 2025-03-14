@@ -1,5 +1,6 @@
 #include "DeskControler.h"
-#include "NetworkManager.h"   // 需要和你项目中的 NetworkManager 对应
+#include "NetworkManager.h"
+#include <QScrollArea>
 #include "VideoReceiver.h"
 #include "VideoWidget.h"
 #include <QMessageBox>
@@ -61,14 +62,14 @@ void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPor
 	QString resultStr;
 	switch (result) {
 	case 1:  resultStr = "ID_NOT_EXIST"; break;
-	case 2:  resultStr = "OFFLINE";      break;
-	default: resultStr = "UNKNOWN";      break;
+	case 2:  resultStr = "DESKSERVER_OFFLINE";break;
+	case 3:  resultStr = "RELAYSERVER_OFFLINE"; break;
+	default: resultStr = "INNER_ERROR";break;
 	}
 
 	if (result != 0) {
 		LogWidget::instance()->addLog(
-			QString("Relay Server: %1\nRelay Port: %2\nResult: %3")
-			.arg(relayServer).arg(relayPort).arg(resultStr),
+			QString("PunchHoleResponse failed, Result: %3").arg(resultStr),
 			LogWidget::Info
 		);
 		ui.ipLineEdit_->setEnabled(true);
@@ -93,11 +94,28 @@ void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPor
 		videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 
 
-		// 当解码出帧时，发送到 videoWidget 显示
-		connect(videoReceiver, &VideoReceiver::frameReady,
-			videoWidget, &VideoWidget::setFrame);
+		QScrollArea* scrollArea = new QScrollArea();
+		scrollArea->setWidget(videoWidget);
+		scrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
 
-		connect(videoWidget, &QObject::destroyed, [this, videoReceiver]() {
+
+		// 当解码出帧时，发送到 videoWidget 显示
+		connect(videoReceiver, &VideoReceiver::frameReady, this, [videoWidget, scrollArea](const QImage& img) {
+
+			static bool firstFrame = true;
+			if (firstFrame && !img.isNull()) 
+			{
+				QSize initialSize = img.size().expandedTo(QSize(800, 600));
+				scrollArea->resize(initialSize);
+				firstFrame = false;
+				scrollArea->show();
+			}
+			videoWidget->setFrame(img);
+
+			});
+
+
+		connect(scrollArea, &QObject::destroyed, [this, videoReceiver]() {
 			videoReceiver->deleteLater();
 			ui.ipLineEdit_->setEnabled(true);
 			ui.portLineEdit_->setEnabled(true);
@@ -109,10 +127,9 @@ void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPor
 		ui.portLineEdit_->setEnabled(false);
 		ui.lineEdit->setEnabled(false);
 		ui.pushButton->setEnabled(false);
-		videoWidget->show();
+
 
 		// 发起连接到 Relay 服务器
-		// （VideoReceiver 内部连接后会自动发送 RequestRelay）
 		videoReceiver->startConnect(relayServer, static_cast<quint16>(relayPort), uuid);
 	}
 }
