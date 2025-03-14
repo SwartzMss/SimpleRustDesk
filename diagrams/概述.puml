@@ -13,7 +13,6 @@ note over DS : uuid 为 DeskServer 自生成的唯一标识
 IDS -> DS: RegisterPeerResponse { result }\n(result: OK / SERVER_ERROR)
 note over IDS: 同时记录 DeskServer 的 IP 和 UUID
 
-
 DS -> RS: UDP Heartbeat { }
 RS -> DS: UDP Heartbeat (reply)
 note over DS: 收到回复则认为双方在线
