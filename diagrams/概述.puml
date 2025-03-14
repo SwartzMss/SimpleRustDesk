@@ -19,7 +19,6 @@ note over DS: 收到回复则认为双方在线
 end group
 
 group 连接阶段
-
 note over DC: 用户操作 DeskControl\n输入目标 DeskServer 的 UUID
 用户 -> DC: 输入目标 UUID
 note over DC: id 为本次连接的内部标识
