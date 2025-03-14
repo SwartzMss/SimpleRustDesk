@@ -1,9 +1,25 @@
 #include "DeskServer.h"
 #include <QtWidgets/QApplication>
+#include <QSharedMemory>
+
+bool checkSingleInstance(const QString& key) {
+	static QSharedMemory sharedMem(key);
+	if (!sharedMem.create(1)) {
+		return false; // 已有实例在运行
+	}
+	return true; // 没有实例在运行
+}
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+	const QString sharedMemoryKey = "DeskServerSharedMemory";
+
+	QSharedMemory sharedMem(sharedMemoryKey);
+	if (!sharedMem.create(1)) {
+		return 0;
+	}
     DeskServer w;
 	// 禁止最大化
 	w.setWindowFlags(w.windowFlags() & ~Qt::WindowMaximizeButtonHint);
