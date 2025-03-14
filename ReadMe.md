@@ -21,7 +21,7 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
   
 ## 系统 UML 图
 
-![系统 UML](diagrams/output/概述.svg)
+![系统 UML](diagrams/output/overview.svg)
 
 ## 注意事项
 
