@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - 'diagrams/*.puml'
-  pull_request:
-    paths:
-      - 'diagrams/*.puml'
 
 jobs:
   render:
