@@ -42,7 +42,7 @@ void MessageHandler::processReceivedData(const QByteArray& data)
 		const PunchHoleResponse& response = msg.punch_hole_response();
 		QString relayServer = QString::fromUtf8(response.relay_server().data(), response.relay_server().size());
 		int relayPort = response.relay_port();
-		int result = static_cast<int>(response.result());  // Ã¶¾ÙÖµ£ºOK=0, ID_NOT_EXIST=1, OFFLINE=2
+		int result = static_cast<int>(response.result());
 		emit punchHoleResponseReceived(relayServer, relayPort, result);
 	}
 	else {

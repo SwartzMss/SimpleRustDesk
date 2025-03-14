@@ -25,7 +25,6 @@ signals:
 	void disconnected();
 
 private slots:
-	void onSocketConnected();
 	void onReadyRead();
 	void onSocketDisconnected();
 

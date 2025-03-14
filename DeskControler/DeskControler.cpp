@@ -40,17 +40,25 @@ void DeskControler::onConnectClicked()
 	QString uuid = ui.lineEdit->text();
 
 	if (ip.isEmpty() || uuid.isEmpty() || port == 0) {
-		LogWidget::instance()->addLog("please check IP / Port / Uuid", LogWidget::Info);
+		LogWidget::instance()->addLog("please check IP / Port / Uuid", LogWidget::Warning);
 		return;
 	}
 	ui.pushButton->setEnabled(false);
 
+	LogWidget::instance()->addLog(
+		QString("Attempting to connect to server at %1:%2 with UUID: %3").arg(ip).arg(port).arg(uuid),
+		LogWidget::Info
+	);
 	// 连接到服务端（阻塞 3 秒等结果），失败则提示
 	if (!networkManager->connectToServer(ip, port)) {
-		LogWidget::instance()->addLog("connect Server failed", LogWidget::Warning);
+		LogWidget::instance()->addLog(
+			QString("Failed to connect to server at %1:%2").arg(ip).arg(port),
+			LogWidget::Error
+		);
 		ui.pushButton->setEnabled(true);
 		return;
 	}
+	LogWidget::instance()->addLog("Server connection established. Sending punch hole request.", LogWidget::Info);
 	// 连接成功后，发送 PunchHoleRequest
 	networkManager->sendPunchHoleRequest(uuid);
 
@@ -58,20 +66,34 @@ void DeskControler::onConnectClicked()
 
 void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPort, int result)
 {
-	// 显示响应结果
 	QString resultStr;
 	switch (result) {
-	case 1:  resultStr = "ID_NOT_EXIST"; break;
-	case 2:  resultStr = "DESKSERVER_OFFLINE";break;
-	case 3:  resultStr = "RELAYSERVER_OFFLINE"; break;
-	default: resultStr = "INNER_ERROR";break;
+	case 0:
+		resultStr = "OK";
+		break;
+	case 1:
+		resultStr = "ID_NOT_EXIST";
+		break;
+	case 2:
+		resultStr = "DESKSERVER_OFFLINE";
+		break;
+	case 3:
+		resultStr = "RELAYSERVER_OFFLINE";
+		break;
+	default:
+		resultStr = "INNER_ERROR";
+		break;
 	}
 
+	LogWidget::LogLevel logLevel = (result == 0) ? LogWidget::Info : LogWidget::Error;
+
+	LogWidget::instance()->addLog(
+		QString("Punch hole response: %1 (Relay Server: %2, Port: %3)")
+		.arg(resultStr).arg(relayServer).arg(relayPort),
+		logLevel
+	);
+
 	if (result != 0) {
-		LogWidget::instance()->addLog(
-			QString("PunchHoleResponse failed, Result: %3").arg(resultStr),
-			LogWidget::Info
-		);
 		ui.ipLineEdit_->setEnabled(true);
 		ui.portLineEdit_->setEnabled(true);
 		ui.lineEdit->setEnabled(true);
@@ -79,60 +101,57 @@ void DeskControler::onPunchHoleResponse(const QString& relayServer, int relayPor
 		return;
 	}
 
-	if (result == 0) {  // OK
-		LogWidget::instance()->addLog(
-			QString("Relay Server: %1\nRelay Port: %2\nResult: OK")
-			.arg(relayServer).arg(relayPort),
-			LogWidget::Info
-		);
-		// 获取 uuid
-		QString uuid = ui.lineEdit->text();
-
-		// 创建 VideoReceiver 和 VideoWidget，用来连接 Relay 并显示视频
-		VideoReceiver* videoReceiver = new VideoReceiver();  // 由应用管理生命周期
-		VideoWidget* videoWidget = new VideoWidget();     // 独立窗口
-		videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);
-
-
-		QScrollArea* scrollArea = new QScrollArea();
-		scrollArea->setWidget(videoWidget);
-		scrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
-
-
-		// 当解码出帧时，发送到 videoWidget 显示
-		connect(videoReceiver, &VideoReceiver::frameReady, this, [videoWidget, scrollArea](const QImage& img) {
-
-			static bool firstFrame = true;
-			if (firstFrame && !img.isNull()) 
-			{
-				QSize initialSize = img.size().expandedTo(QSize(800, 600));
-				scrollArea->resize(initialSize);
-				firstFrame = false;
-				scrollArea->show();
-			}
-			videoWidget->setFrame(img);
-
-			});
-
-
-		connect(scrollArea, &QObject::destroyed, [this, videoReceiver]() {
-			videoReceiver->deleteLater();
-			ui.ipLineEdit_->setEnabled(true);
-			ui.portLineEdit_->setEnabled(true);
-			ui.lineEdit->setEnabled(true);
-			ui.pushButton->setEnabled(true);
-			});
-
-		ui.ipLineEdit_->setEnabled(false);
-		ui.portLineEdit_->setEnabled(false);
-		ui.lineEdit->setEnabled(false);
-		ui.pushButton->setEnabled(false);
-
-
-		// 发起连接到 Relay 服务器
-		videoReceiver->startConnect(relayServer, static_cast<quint16>(relayPort), uuid);
-	}
+	setupVideoSession(relayServer, relayPort, resultStr);
 }
+
+void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayPort, const QString& status)
+{
+	LogWidget::instance()->addLog(
+		QString("Establishing video session via relay server %1:%2 - Status: %3").arg(relayServer).arg(relayPort).arg(status),
+		LogWidget::Info
+	);
+
+	VideoReceiver* videoReceiver = new VideoReceiver(this);
+	VideoWidget* videoWidget = new VideoWidget();
+	videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+
+	QScrollArea* scrollArea = new QScrollArea();
+	scrollArea->setWidget(videoWidget);
+	scrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
+
+	// 当解码出帧时，发送到 videoWidget 显示
+	connect(videoReceiver, &VideoReceiver::frameReady, this, [videoWidget, scrollArea](const QImage& img) {
+
+		static bool firstFrame = true;
+		if (firstFrame && !img.isNull())
+		{
+			LogWidget::instance()->addLog("Video stream started and UI initialized.", LogWidget::Info);
+			QSize initialSize = img.size().expandedTo(QSize(800, 600));
+			scrollArea->resize(initialSize);
+			firstFrame = false;
+			scrollArea->show();
+		}
+		videoWidget->setFrame(img);
+
+		});
+
+	connect(scrollArea, &QObject::destroyed, this, [this]() {
+		ui.pushButton->setEnabled(true);
+		ui.ipLineEdit_->setEnabled(true);
+		ui.portLineEdit_->setEnabled(true);
+		ui.lineEdit->setEnabled(true);
+		LogWidget::instance()->addLog("Video widget closed by user.", LogWidget::Info);
+		});
+
+	ui.ipLineEdit_->setEnabled(false);
+	ui.portLineEdit_->setEnabled(false);
+	ui.lineEdit->setEnabled(false);
+	ui.pushButton->setEnabled(false);
+
+	QString uuid = ui.lineEdit->text();
+	videoReceiver->startConnect(relayServer, static_cast<quint16>(relayPort), uuid);
+}
+
 
 void DeskControler::onNetworkError(const QString& error)
 {
@@ -144,7 +163,7 @@ void DeskControler::onNetworkError(const QString& error)
 
 void DeskControler::onNetworkDisconnected()
 {
-	LogWidget::instance()->addLog("Network Disconnected", LogWidget::Info);
+	LogWidget::instance()->addLog("Network connection disconnected.", LogWidget::Warning);
 	// 如果需要，恢复按钮可点击
 	ui.pushButton->setEnabled(true);
 }

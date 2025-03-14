@@ -1,13 +1,12 @@
 #include "NetworkWorker.h"
-#include "LogWidget.h"        // 如果你有日志功能
-#include "rendezvous.pb.h"    // 假设你要发送 RequestRelay 消息
+#include "LogWidget.h"
+#include "rendezvous.pb.h"
 
 #include <QtEndian>
 
 NetworkWorker::NetworkWorker(QObject* parent)
 	: QObject(parent)
 {
-	// 不要在构造函数里创建 m_socket，后面在 connectToServer 里创建
 }
 
 NetworkWorker::~NetworkWorker()
@@ -18,10 +17,11 @@ NetworkWorker::~NetworkWorker()
 	}
 }
 
-// 注意：这个槽会在工作线程里被调用
 void NetworkWorker::connectToServer(const QString& host, quint16 port, const QString& uuid)
 {
-	m_uuid = uuid;  // 保存起来，用于后面发送 RequestRelay
+	m_host = host;
+	m_port = port;
+	m_uuid = uuid;
 
 	if (m_socket) {
 		m_socket->deleteLater();
@@ -41,14 +41,11 @@ void NetworkWorker::connectToServer(const QString& host, quint16 port, const QSt
 
 void NetworkWorker::onSocketConnected()
 {
-	LogWidget::instance()->addLog("NetworkWorker: Connected to server", LogWidget::Info);
-	emit connectedToServer();
-
-	// 连接成功后发送 RequestRelay 消息
-	sendRequestRelay();
+	QString info = QString("Disconnected from server [%1:%2]").arg(m_host).arg(m_socket->peerPort());
+	LogWidget::instance()->addLog(info, LogWidget::Warning);
+	emit networkError(info);
 }
 
-// 发送 RequestRelay 消息
 void NetworkWorker::sendRequestRelay()
 {
 	RendezvousMessage msg;
@@ -64,11 +61,13 @@ void NetworkWorker::sendRequestRelay()
 	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
 		m_socket->write(data);
 		m_socket->flush();
-		LogWidget::instance()->addLog(QString("Sent RequestRelay with uuid=%1").arg(m_uuid), LogWidget::Info);
+		LogWidget::instance()->addLog(QString("Sent RequestRelay to [%1:%2] with uuid=%3")
+			.arg(m_socket->peerAddress().toString())
+			.arg(m_socket->peerPort())
+			.arg(m_uuid), LogWidget::Info);
 	}
 }
 
-// 收到数据后拆包，然后发射 packetReady
 void NetworkWorker::onSocketReadyRead()
 {
 	// 将收到的数据追加到缓冲区
@@ -94,18 +93,21 @@ void NetworkWorker::onSocketReadyRead()
 	}
 }
 
+
 void NetworkWorker::onSocketError(QAbstractSocket::SocketError socketError)
 {
 	Q_UNUSED(socketError);
 	if (m_socket) {
-		QString err = m_socket->errorString();
-		LogWidget::instance()->addLog(QString("Socket Error: %1").arg(err), LogWidget::Error);
+		QString err = QString("Socket Error [%1:%2]: %3")
+			.arg(m_host).arg(m_socket->peerPort()).arg(m_socket->errorString());
+		LogWidget::instance()->addLog(err, LogWidget::Error);
 		emit networkError(err);
 	}
 }
 
 void NetworkWorker::onSocketDisconnected()
 {
-	LogWidget::instance()->addLog("Socket disconnected", LogWidget::Warning);
-	emit networkError("Disconnected from server");
+	QString info = QString("Socket disconnected from [%1:%2]").arg(m_socket->peerAddress().toString()).arg(m_socket->peerPort());
+	LogWidget::instance()->addLog(info, LogWidget::Warning);
+	emit networkError(info);
 }

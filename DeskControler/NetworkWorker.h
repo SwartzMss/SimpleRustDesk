@@ -32,8 +32,9 @@ private slots:
 private:
 	QTcpSocket* m_socket = nullptr;
 	QByteArray m_buffer;
-	QString m_uuid;   // 保存要发送的 uuid (比如 RequestRelay 里要用)
-
+	QString m_uuid;
+	QString m_host;
+	quint16 m_port;
 	void sendRequestRelay();
 };
 

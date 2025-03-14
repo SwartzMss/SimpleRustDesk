@@ -20,6 +20,8 @@ private slots:
 	void onNetworkDisconnected();
 
 private:
+	void setupVideoSession(const QString& relayServer, quint16 relayPort, const QString& status);
+private:
 	Ui::DeskControlerClass ui;
 	NetworkManager* networkManager;
 };

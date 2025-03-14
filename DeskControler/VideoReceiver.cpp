@@ -50,7 +50,6 @@ VideoReceiver::~VideoReceiver()
     m_decodeThread->quit();
     m_networkThread->wait();
     m_decodeThread->wait();
-    // Worker 会在 finished 后 deleteLater
 }
 
 void VideoReceiver::startConnect(const QString& host, quint16 port, const QString& uuid)
@@ -67,7 +66,6 @@ void VideoReceiver::startConnect(const QString& host, quint16 port, const QStrin
 
 void VideoReceiver::onFrameDecoded(const QImage& img)
 {
-    // 把解码好的帧发给外部
     emit frameReady(img);
 }
 
