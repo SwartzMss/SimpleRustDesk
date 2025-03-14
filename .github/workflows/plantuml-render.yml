@@ -9,6 +9,10 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
+    # 让 GITHUB_TOKEN 具备写入内容的权限
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -48,16 +52,10 @@ jobs:
             ls -alh diagrams/output
           fi
 
-      - name: Print token length
-        run: |
-          echo "Token length: ${#PERSONAL_ACCESS_TOKEN}"
-        env:
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
       - name: Commit rendered diagrams
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update rendered UML diagrams"
           file_pattern: "diagrams/output/*.svg"
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
+          # 使用内置的 GITHUB_TOKEN
+          token: ${{ secrets.GITHUB_TOKEN }}
