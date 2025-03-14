@@ -30,6 +30,16 @@ jobs:
         run: |
           java -jar plantuml.jar -tsvg -o diagrams/output diagrams/*.puml
 
+      - name: Verify output files exist
+        run: |
+          if [ -z "$(ls -A diagrams/output)" ]; then 
+            echo "No SVG files generated in diagrams/output"
+            exit 1
+          else 
+            echo "SVG files generated:"
+            ls -alh diagrams/output
+          fi
+
       - name: Commit rendered diagrams
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
