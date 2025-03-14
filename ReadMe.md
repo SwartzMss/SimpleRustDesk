@@ -1,6 +1,7 @@
 # SimpleRustDesk
 
 [![CI Build](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/msbuild.yml/badge.svg)](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/msbuild.yml)
+[![Render PlantUML Diagrams](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/plantuml-render.yml/badge.svg)](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/plantuml-render.yml)
 
 SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk 的设计思想，展示了如何构建一个完整的远程控制框架。系统通过信令交互和数据中继，实现被控端与控制端之间的远程连接与数据传输，主要包含以下模块：
 
