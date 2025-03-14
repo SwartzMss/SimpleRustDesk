@@ -17,6 +17,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Install fonts for Chinese
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
@@ -40,6 +45,7 @@ jobs:
       - name: Render UML diagrams to SVG
         run: |
           cd diagrams
+          # 指定 UTF-8 编码，防止中文乱码
           java -Dfile.encoding=UTF-8 -jar ../plantuml.jar -tsvg -o output *.puml
 
       - name: Verify output files exist
@@ -57,5 +63,4 @@ jobs:
         with:
           commit_message: "Update rendered UML diagrams"
           file_pattern: "diagrams/output/*.svg"
-          # 使用内置的 GITHUB_TOKEN
           token: ${{ secrets.GITHUB_TOKEN }}
