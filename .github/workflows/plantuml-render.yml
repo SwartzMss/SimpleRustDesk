@@ -53,3 +53,4 @@ jobs:
         with:
           commit_message: "Update rendered UML diagrams"
           file_pattern: "diagrams/output/*.svg"
+          token: ${{ secrets.GITHUB_TOKEN }}
