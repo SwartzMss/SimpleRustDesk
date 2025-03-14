@@ -6,7 +6,6 @@ participant "DeskControl" as DC
 participant "IDServer" as IDS
 participant "RelayServer" as RS
 
-
 group 注册阶段（自动执行）
 DS -> IDS: RegisterPeer { uuid }
 note over DS : uuid 为 DeskServer 自生成的唯一标识
