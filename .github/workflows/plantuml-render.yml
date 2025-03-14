@@ -17,12 +17,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
-          java-package: 'jdk'
-          check-latest: false
-          server-id: github
-          server-username: ${{ github.actor }}
-          server-password: ${{ secrets.GITHUB_TOKEN }}
-          overwrite-settings: true
 
       - name: Download PlantUML
         run: |
