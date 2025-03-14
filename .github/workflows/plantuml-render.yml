@@ -1,0 +1,38 @@
+name: Render PlantUML Diagrams
+
+on:
+  push:
+    paths:
+      - 'diagrams/*.puml'
+  pull_request:
+    paths:
+      - 'diagrams/*.puml'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+
+      - name: Download PlantUML
+        run: |
+          wget https://sourceforge.net/projects/plantuml/files/plantuml.jar/download -O plantuml.jar
+
+      - name: Create output directory
+        run: mkdir -p diagrams/output
+
+      - name: Render UML diagrams to SVG
+        run: |
+          java -jar plantuml.jar -tsvg -o diagrams/output diagrams/*.puml
+
+      - name: Commit rendered diagrams
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Update rendered UML diagrams"
+          file_pattern: "diagrams/output/*.svg"
