@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'diagrams/*.puml'
+      - '.github/workflows/plantuml-render.yml'
 
 jobs:
   render:
