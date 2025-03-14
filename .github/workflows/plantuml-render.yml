@@ -26,9 +26,16 @@ jobs:
       - name: Create output directory
         run: mkdir -p diagrams/output
 
+      - name: List diagram files
+        run: |
+          echo "Listing files in diagrams:"
+          ls -alh diagrams
+          echo "Content of overview.puml:"
+          cat diagrams/overview.puml
+
       - name: Render UML diagrams to SVG
         run: |
-          java -jar plantuml.jar -tsvg -o diagrams/output diagrams/*.puml
+          java -Dfile.encoding=UTF-8 -jar plantuml.jar -tsvg -o diagrams/output diagrams/*.puml
 
       - name: Verify output files exist
         run: |
