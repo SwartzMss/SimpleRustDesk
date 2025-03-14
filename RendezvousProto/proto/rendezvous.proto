@@ -1,8 +1,17 @@
 syntax = "proto3";
 
 
+
+enum Result {
+  OK = 0;
+  ID_NOT_EXIST = 1;
+  DESKSERVER_OFFLINE = 2;
+  RELAYSERVER_OFFLINE = 3;
+  INNER_ERROR = 4;
+}
+
 message RequestRelay {
-  string uuid = 2;
+  string uuid = 1;
 }
 
 message RegisterPeer {
@@ -10,10 +19,6 @@ message RegisterPeer {
 }
 
 message RegisterPeerResponse {
-  enum Result {
-    OK = 0;
-    SERVER_ERROR = 1;
-  }
   Result result = 1;
 }
 
@@ -23,11 +28,6 @@ message PunchHoleRequest {
 }
 
 message PunchHoleResponse {
-  enum Result {
-    OK = 0;
-    ID_NOT_EXIST = 1;
-    OFFLINE = 2;
-  }
   string relay_server = 1;
   int32 relay_port = 2;
   Result result = 3;
@@ -39,10 +39,6 @@ message PunchHole {
 }
 
 message PunchHoleSent {
-   enum Result {
-    OK = 0;
-    ERR = 1;
-  }
   string relay_server = 1;
   int32 relay_port = 2;
   Result result = 3;

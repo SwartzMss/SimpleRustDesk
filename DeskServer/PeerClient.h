@@ -24,7 +24,7 @@ public:
 
 signals:
 	// 注册结果信号，返回 RegisterPeerResponse::Result 枚举值
-	void registrationResult(RegisterPeerResponse::Result result);
+	void registrationResult(Result result);
 	// 出错信号
 	void errorOccurred(const QString& errorString);
 

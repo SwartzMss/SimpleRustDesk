@@ -112,11 +112,11 @@ void PeerClient::onReadyRead()
 	if (msg.has_register_peer_response()) {
 		// 原来的注册处理逻辑
 		RegisterPeerResponse response = msg.register_peer_response();
-		if (response.result() == RegisterPeerResponse::OK) {
-			emit registrationResult(RegisterPeerResponse::OK);
+		if (response.result() == Result::OK) {
+			emit registrationResult(Result::OK);
 		}
-		else if (response.result() == RegisterPeerResponse::SERVER_ERROR) {
-			emit registrationResult(RegisterPeerResponse::SERVER_ERROR);
+		else if (response.result() == Result::INNER_ERROR) {
+			emit registrationResult(Result::INNER_ERROR);
 		}
 		else {
 			emit registrationResult(response.result());
@@ -131,13 +131,13 @@ void PeerClient::onReadyRead()
 		sent.set_id(msg.punch_hole().id());
 		if (!m_isRelayOnline)
 		{
-			sent.set_result(PunchHoleSent::ERR);
+			sent.set_result(Result::RELAYSERVER_OFFLINE);
 		}
 		else
 		{
 			sent.set_relay_server(m_relayIP.toStdString());
 			sent.set_relay_port(m_relayPort);
-			sent.set_result(PunchHoleSent::OK);
+			sent.set_result(Result::OK);
 		}
 
 		// 将 PunchHoleSent 消息嵌入到 RendezvousMessage 中
@@ -154,7 +154,7 @@ void PeerClient::onReadyRead()
 		LogWidget::instance()->addLog("Sent PunchHoleSent message in response", LogWidget::Info);
 
 		// If the result is OK, start the RelayManager to establish a TCP connection to the relay server.
-		if (sent.result() == PunchHoleSent::OK) {
+		if (sent.result() == Result::OK) {
 			if (!m_relayManager) {
 				m_relayManager = new RelayManager(this);
 			}
