@@ -68,11 +68,11 @@ void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpS
 		PunchHoleResponse response;
 		if (!idExists)
 		{
-			response.set_result(PunchHoleResponse::ID_NOT_EXIST);
+			response.set_result(Result::ID_NOT_EXIST);
 		}
 		else
 		{
-			response.set_result(PunchHoleResponse::OFFLINE);
+			response.set_result(Result::DESKSERVER_OFFLINE);
 		}
 
 		RendezvousMessage msg;
@@ -104,7 +104,7 @@ void RendezvousServer::handleRegisterPeer(const RegisterPeer& req, QTcpSocket* s
 	QString uuid = QString::fromUtf8(req.uuid().data(), req.uuid().size());
 
 	RegisterPeerResponse response;
-	response.set_result(RegisterPeerResponse::OK);
+	response.set_result(Result::OK);
 	RendezvousMessage msg;
 	msg.mutable_register_peer_response()->CopyFrom(response);
 	QByteArray out;
@@ -128,7 +128,7 @@ void RendezvousServer::handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket*
 
 		PunchHoleResponse response;
 		response.set_relay_port(req.relay_port());
-		response.set_result(req.result() == PunchHoleSent_Result_OK ? PunchHoleResponse_Result_OK:PunchHoleResponse_Result_OFFLINE);
+		response.set_result(req.result());
 		response.set_relay_server(req.relay_server());
 
 		RendezvousMessage msg;
