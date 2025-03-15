@@ -1,7 +1,8 @@
 #include "NetworkWorker.h"
 #include "LogWidget.h"
 #include "rendezvous.pb.h"
-
+#include <QUrl>
+#include <QtNetwork/QHostInfo>
 #include <QtEndian>
 
 NetworkWorker::NetworkWorker(QObject* parent)
@@ -17,9 +18,32 @@ NetworkWorker::~NetworkWorker()
 	}
 }
 
-void NetworkWorker::connectToServer(const QString& host, quint16 port, const QString& uuid)
+void NetworkWorker::connectToServer(const QString& ip, quint16 port, const QString& uuid)
 {
-	m_host = host;
+
+	// 解析输入，支持 URL 格式
+	QUrl url = QUrl::fromUserInput(ip);
+	// 如果 URL 解析成功，则提取 host，否则使用原始字符串
+	QString host = url.host().isEmpty() ? ip : url.host();
+
+	LogWidget::instance()->addLog(QString("Connecting to host: %1, port: %2").arg(host).arg(port), LogWidget::Info);
+
+	QHostAddress resolvedAddress;
+	if (!resolvedAddress.setAddress(host)) {
+		QHostInfo info = QHostInfo::fromName(host);
+		if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
+			QString error = QString("Failed to resolve host: %1").arg(host);
+			LogWidget::instance()->addLog(error, LogWidget::Error);
+			return;
+		}
+		resolvedAddress = info.addresses().first();
+		LogWidget::instance()->addLog(QString("Resolved host %1 to %2").arg(host, resolvedAddress.toString()), LogWidget::Info);
+	}
+	else {
+		LogWidget::instance()->addLog(QString("Host address directly parsed: %1").arg(host), LogWidget::Info);
+	}
+
+	m_host = resolvedAddress.toString();
 	m_port = port;
 	m_uuid = uuid;
 
@@ -41,9 +65,12 @@ void NetworkWorker::connectToServer(const QString& host, quint16 port, const QSt
 
 void NetworkWorker::onSocketConnected()
 {
-	QString info = QString("Disconnected from server [%1:%2]").arg(m_host).arg(m_socket->peerPort());
-	LogWidget::instance()->addLog(info, LogWidget::Warning);
-	emit networkError(info);
+	QString info = QString("Connected to server [%1:%2]").arg(m_socket->peerAddress().toString()).arg(m_socket->peerPort());
+	LogWidget::instance()->addLog(info, LogWidget::Info);
+	emit connectedToServer();
+
+	// 连接成功后发送 RequestRelay 消息
+	sendRequestRelay();
 }
 
 void NetworkWorker::sendRequestRelay()

@@ -1,6 +1,9 @@
 #include "DeskServer.h"
 #include <QtNetwork/QHostAddress>
 #include <QUrl>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QtNetwork/QHostInfo>
 #include "LogWidget.h"
 
@@ -8,6 +11,7 @@ DeskServer::DeskServer(QWidget* parent)
 	: QWidget(parent), m_peerClient(nullptr)
 {
 	ui.setupUi(this);
+	loadConfig();
 	LogWidget::instance()->init(ui.widget_2);
 	connect(ui.startButton_, &QPushButton::clicked, this, &DeskServer::onStartClicked);
 	ui.startButton_->setText("Start");
@@ -22,6 +26,69 @@ DeskServer::~DeskServer()
 	if (m_relayPeerClient) {
 		m_relayPeerClient->stop();
 		m_relayPeerClient->deleteLater();
+	}
+}
+
+
+void DeskServer::loadConfig()
+{
+	QFile file("DeskServer.json");
+	if (!file.exists()) {
+		// 文件不存在，创建默认配置
+		QJsonObject defaultConfig;
+		defaultConfig["server"] = QJsonObject{
+			{"ip", "127.0.0.1"},
+			{"port", 21116}
+		};
+		defaultConfig["relay"] = QJsonObject{
+			{"ip", "127.0.0.1"},
+			{"port", 21117}
+		};
+
+		QJsonDocument doc(defaultConfig);
+		if (file.open(QIODevice::WriteOnly)) {
+			file.write(doc.toJson());
+			file.close();
+		}
+	}
+	// 打开配置文件并解析
+	if (file.open(QIODevice::ReadOnly)) {
+		QByteArray data = file.readAll();
+		file.close();
+		QJsonDocument doc = QJsonDocument::fromJson(data);
+		if (!doc.isNull() && doc.isObject()) {
+			QJsonObject config = doc.object();
+			QJsonObject serverObj = config["server"].toObject();
+			QJsonObject relayObj = config["relay"].toObject();
+
+			// 设置 UI 输入框的默认值
+			ui.iPLineEdit->setText(serverObj["ip"].toString("127.0.0.1"));
+			ui.portLineEdit_->setText(QString::number(serverObj["port"].toInt(21116)));
+			ui.iPLineEdit_3->setText(relayObj["ip"].toString("127.0.0.1"));
+			ui.portLineEdit_2->setText(QString::number(relayObj["port"].toInt(21117)));
+		}
+	}
+}
+
+// 保存当前配置到文件
+void DeskServer::saveConfig()
+{
+	QJsonObject config;
+	QJsonObject serverObj;
+	serverObj["ip"] = ui.iPLineEdit->text().trimmed();
+	serverObj["port"] = ui.portLineEdit_->text().toInt();
+	QJsonObject relayObj;
+	relayObj["ip"] = ui.iPLineEdit_3->text().trimmed();
+	relayObj["port"] = ui.portLineEdit_2->text().toInt();
+
+	config["server"] = serverObj;
+	config["relay"] = relayObj;
+
+	QJsonDocument doc(config);
+	QFile file("DeskServer.json");
+	if (file.open(QIODevice::WriteOnly)) {
+		file.write(doc.toJson());
+		file.close();
 	}
 }
 
@@ -71,6 +138,7 @@ void DeskServer::onStartClicked()
 			resolvedRelayAddress = info.addresses().first();
 		}
 
+		saveConfig();
 		m_peerClient = new PeerClient(this);
 
 		m_peerClient->setRelayInfo(relayHost, relayPort);

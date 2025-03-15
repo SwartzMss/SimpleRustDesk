@@ -1,7 +1,7 @@
 #include "IDServer.h"
 #include <QtWidgets/QApplication>
 #include <QSharedMemory>
-
+#include <QtCore/QDir>
 bool checkSingleInstance(const QString& key) {
 	static QSharedMemory sharedMem(key);
 	if (!sharedMem.create(1)) {
@@ -12,7 +12,7 @@ bool checkSingleInstance(const QString& key) {
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-
+	QDir::setCurrent(a.applicationDirPath());
 	const QString sharedMemoryKey = "IDServerSharedMemory";
 
 	QSharedMemory sharedMem(sharedMemoryKey);

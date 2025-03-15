@@ -111,6 +111,7 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 		LogWidget::Info
 	);
 
+
 	VideoReceiver* videoReceiver = new VideoReceiver(this);
 	VideoWidget* videoWidget = new VideoWidget();
 	videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);

@@ -21,6 +21,9 @@ private slots:
 
 private:
 	void updateStatus(bool online);
+	void loadConfig();
+	void saveConfig();
+
 
 private:
 	Ui::DeskServerClass ui;

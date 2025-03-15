@@ -1,6 +1,7 @@
 #include "DeskServer.h"
 #include <QtWidgets/QApplication>
 #include <QSharedMemory>
+#include <QtCore/QDir>
 
 bool checkSingleInstance(const QString& key) {
 	static QSharedMemory sharedMem(key);
@@ -13,6 +14,7 @@ bool checkSingleInstance(const QString& key) {
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+	QDir::setCurrent(a.applicationDirPath());
 
 	const QString sharedMemoryKey = "DeskServerSharedMemory";
 
