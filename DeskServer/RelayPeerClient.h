@@ -34,4 +34,5 @@ private:
 	QHostAddress m_relayAddress;
 	quint16 m_relayPort;
 	QTimer* m_heartbeatTimer;
+	bool m_isAlive;
 };
