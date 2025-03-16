@@ -205,13 +205,17 @@ void PeerClient::onSocketError(QAbstractSocket::SocketError error)
 void PeerClient::onDisconnected()
 {
 	m_connected = false;
+	emit errorOccurred("Disconnected from server");
+
 	if (!m_isStopping) {
 		m_reconnectTimer->stop();
 		m_socket->disconnectFromHost();
 		m_socket->deleteLater();
 		m_socket = nullptr;
+		LogWidget::instance()->addLog("Disconnected from server, attempting to reconnect...", LogWidget::Info);
+		// 启动重连定时器，等待一段时间后尝试重新连接
+		m_reconnectTimer->start();
 	}
-	emit errorOccurred("Disconnected from server");
 }
 
 void PeerClient::attemptReconnect()

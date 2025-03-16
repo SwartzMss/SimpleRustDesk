@@ -22,6 +22,7 @@ RelayPeerClient::~RelayPeerClient()
 
 void RelayPeerClient::start(const QHostAddress& relayAddress, quint16 relayPort)
 {
+	m_isAlive = true;
 	m_relayAddress = relayAddress;
 	m_relayPort = relayPort;
 
@@ -46,6 +47,12 @@ void RelayPeerClient::stop()
 
 void RelayPeerClient::sendHeartbeat()
 {
+	if (m_isAlive == false)
+	{
+		emit errorOccurred("Heartbeat message not responsed");
+	}
+	m_isAlive = false;
+
 	// 构造 Heartbeat 消息
 	RendezvousMessage msg;
 	msg.mutable_heartbeat();  // 设置 heartbeat 字段
@@ -74,6 +81,7 @@ void RelayPeerClient::onReadyRead()
 		RendezvousMessage response;
 		if (response.ParseFromArray(datagram.data(), datagram.size())) {
 			if (response.has_heartbeat()) {
+				m_isAlive = true;
 				emit heartbeatResponseReceived();
 			}
 		}
