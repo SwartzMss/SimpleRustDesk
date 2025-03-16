@@ -22,17 +22,21 @@ ScreenCaptureEncoder::ScreenCaptureEncoder(QObject* parent)
 		qFatal("Could not allocate video codec context");
 	}
 
-	codecCtx->bit_rate = screenSize.width() * screenSize.height() * 4; // 根据分辨率调整比特率
+	// MOD: 降低比特率，从原来的 width*height*4 调整为 width*height*2
+	codecCtx->bit_rate = screenSize.width() * screenSize.height() * 2;
 	codecCtx->width = screenSize.width();
 	codecCtx->height = screenSize.height();
-	codecCtx->time_base = AVRational{ 1, 30 }; // 30 fps
-	codecCtx->framerate = AVRational{ 30, 1 };
+	// MOD: 降低帧率到20fps（原来30fps）
+	codecCtx->time_base = AVRational{ 1, 20 };
+	codecCtx->framerate = AVRational{ 20, 1 };
 	codecCtx->gop_size = 10;
 	codecCtx->max_b_frames = 1;
 	codecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
 
-	// 设置低延迟预设（编码器需支持该选项）
+	// 设置低延迟预设和零延迟调优
 	av_opt_set(codecCtx->priv_data, "preset", "ultrafast", 0);
+	// MOD: 增加零延迟调优选项
+	av_opt_set(codecCtx->priv_data, "tune", "zerolatency", 0);
 
 	// 打开编码器
 	if (avcodec_open2(codecCtx, codec, nullptr) < 0) {
@@ -63,7 +67,7 @@ ScreenCaptureEncoder::ScreenCaptureEncoder(QObject* parent)
 		qFatal("Could not initialize the conversion context");
 	}
 
-	// 创建定时器，实现约30fps的捕获频率
+	// MOD: 调整定时器间隔，匹配20fps（50ms每帧）
 	timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, &ScreenCaptureEncoder::captureAndEncode);
 }
@@ -84,7 +88,8 @@ ScreenCaptureEncoder::~ScreenCaptureEncoder()
 
 void ScreenCaptureEncoder::startCapture()
 {
-	timer->start(33);
+	// MOD: 使用50ms间隔以实现20fps
+	timer->start(50);
 }
 
 
@@ -115,17 +120,19 @@ void ScreenCaptureEncoder::reinitializeEncoder(int newWidth, int newHeight)
 		qFatal("Could not allocate video codec context");
 	}
 
-	// 根据新分辨率调整比特率与其它参数
-	codecCtx->bit_rate = newWidth * newHeight * 4;
-	codecCtx->width = newWidth;
-	codecCtx->height = newHeight;
-	codecCtx->time_base = AVRational{ 1, 30 };
-	codecCtx->framerate = AVRational{ 30, 1 };
+	// MOD: 使用新的分辨率和调优参数（保持原分辨率不变）
+	QSize newSize(newWidth, newHeight);
+	codecCtx->bit_rate = newSize.width() * newSize.height() * 2; // MOD: bit_rate调整
+	codecCtx->width = newSize.width();
+	codecCtx->height = newSize.height();
+	codecCtx->time_base = AVRational{ 1, 20 }; // MOD: 20fps
+	codecCtx->framerate = AVRational{ 20, 1 };
 	codecCtx->gop_size = 10;
 	codecCtx->max_b_frames = 1;
 	codecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
 
 	av_opt_set(codecCtx->priv_data, "preset", "ultrafast", 0);
+	av_opt_set(codecCtx->priv_data, "tune", "zerolatency", 0);
 
 	if (avcodec_open2(codecCtx, codec, nullptr) < 0) {
 		qFatal("Could not open codec");
@@ -154,14 +161,14 @@ void ScreenCaptureEncoder::reinitializeEncoder(int newWidth, int newHeight)
 		qFatal("Could not initialize the conversion context");
 	}
 
-	qDebug() << "Encoder reinitialized with resolution:" << newWidth << "x" << newHeight;
+	qDebug() << "Encoder reinitialized with resolution:" << codecCtx->width << "x" << codecCtx->height;
 
-	// 重启定时器
-	timer->start(33);
+	// MOD: 重启定时器，使用50ms间隔
+	timer->start(50);
 }
 
 
-void ScreenCaptureEncoder::stopCapture() 
+void ScreenCaptureEncoder::stopCapture()
 {
 	if (timer) {
 		timer->stop();
@@ -190,7 +197,7 @@ void ScreenCaptureEncoder::captureAndEncode()
 	QPixmap pixmap = screen->grabWindow(0);
 	QImage image = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
 
-	// 如果需要按比例缩放（这里保持比例），可以调整为合适的策略
+	// MOD: 直接使用原始分辨率，不改变尺寸
 	QImage scaledImage = image.scaled(codecCtx->width, codecCtx->height, Qt::KeepAspectRatio);
 
 	uint8_t* srcData[4] = { scaledImage.bits(), nullptr, nullptr, nullptr };
