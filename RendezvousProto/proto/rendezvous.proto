@@ -11,7 +11,12 @@ enum Result {
 }
 
 message RequestRelay {
+    enum DeskRole {
+    DESK_CONTROL = 0;
+    DESK_SERVER = 1;
+    }
   string uuid = 1;
+  DeskRole role = 2; 
 }
 
 message RegisterPeer {
