@@ -1,5 +1,7 @@
 #include "RelayServer.h"
 #include <QtWidgets/QApplication>
+#include <QtNetwork/QNetworkProxy>
+
 #include <QSharedMemory>
 
 bool checkSingleInstance(const QString& key) {
@@ -13,6 +15,8 @@ bool checkSingleInstance(const QString& key) {
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+	QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy);
+
 	const QString sharedMemoryKey = "RelayServerSharedMemory";
 
 	QSharedMemory sharedMem(sharedMemoryKey);
