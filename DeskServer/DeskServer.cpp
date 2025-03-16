@@ -133,7 +133,19 @@ void DeskServer::onStartClicked()
 				LogWidget::instance()->addLog("Failed to resolve IP: " + host, LogWidget::Error);
 				return;
 			}
-			resolvedAddress = info.addresses().first();
+			// 遍历地址列表，筛选 IPv4 地址
+			bool foundIPv4 = false;
+			for (const QHostAddress& address : info.addresses()) {
+				if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+					resolvedAddress = address;
+					foundIPv4 = true;
+					break;
+				}
+			}
+			if (!foundIPv4) {
+				LogWidget::instance()->addLog("No IPv4 address found for Relay IP: " + host, LogWidget::Error);
+				return;
+			}
 		}
 
 		QString relayIP = ui.iPLineEdit_3->text().trimmed();
@@ -153,7 +165,19 @@ void DeskServer::onStartClicked()
 				LogWidget::instance()->addLog("Failed to resolve Relay IP: " + relayHost, LogWidget::Error);
 				return;
 			}
-			resolvedRelayAddress = info.addresses().first();
+			// 遍历地址列表，筛选 IPv4 地址
+			bool foundIPv4 = false;
+			for (const QHostAddress& address : info.addresses()) {
+				if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+					resolvedRelayAddress = address;
+					foundIPv4 = true;
+					break;
+				}
+			}
+			if (!foundIPv4) {
+				LogWidget::instance()->addLog("No IPv4 address found for Relay IP: " + relayHost, LogWidget::Error);
+				return;
+			}
 		}
 
 		saveConfig();

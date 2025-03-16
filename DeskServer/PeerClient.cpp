@@ -168,7 +168,19 @@ void PeerClient::onReadyRead()
 					LogWidget::instance()->addLog("Failed to resolve Relay IP: " + relayHost, LogWidget::Error);
 					return;
 				}
-				resolvedRelayAddress = info.addresses().first();
+				// 遍历地址列表，筛选 IPv4 地址
+				bool foundIPv4 = false;
+				for (const QHostAddress& address : info.addresses()) {
+					if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+						resolvedRelayAddress = address;
+						foundIPv4 = true;
+						break;
+					}
+				}
+				if (!foundIPv4) {
+					LogWidget::instance()->addLog("No IPv4 address found for Relay IP: " + relayHost, LogWidget::Error);
+					return;
+				}
 			}
 
 			m_relayManager->start(resolvedRelayAddress, m_relayPort, m_uuid);
