@@ -51,7 +51,19 @@ bool NetworkManager::connectToServer(const QString& ip, quint16 port)
 			LogWidget::instance()->addLog(error, LogWidget::Error);
 			return false;
 		}
-		resolvedAddress = info.addresses().first();
+		// 遍历地址列表，筛选 IPv4 地址
+		bool foundIPv4 = false;
+		for (const QHostAddress& address : info.addresses()) {
+			if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+				resolvedAddress = address;
+				foundIPv4 = true;
+				break;
+			}
+		}
+		if (!foundIPv4) {
+			LogWidget::instance()->addLog("No IPv4 address found for Relay IP: " + host, LogWidget::Error);
+			return false;
+		}
 		LogWidget::instance()->addLog(QString("Resolved host %1 to %2").arg(host, resolvedAddress.toString()), LogWidget::Info);
 	}
 	else {
