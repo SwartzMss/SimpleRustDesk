@@ -18,13 +18,12 @@ class VideoDecoderWorker : public QObject {
 public:
 	explicit VideoDecoderWorker(QObject* parent = nullptr);
 	~VideoDecoderWorker();
+	void cleanup();
 
 public slots:
-	// 【MOD】用于接收每个 H264 码流包并进行解码
 	void decodePacket(const QByteArray& packetData);
 
 signals:
-	// 【MOD】工作线程里解码完成后，通知外部得到图像帧
 	void frameDecoded(const QImage& image);
 
 private:

@@ -23,11 +23,11 @@ bool ConnectionHandler::start(qintptr socketDescriptor)
 		LogWidget::instance()->addLog(QString("Failed to set socket descriptor: %1").arg(socketDescriptor), LogWidget::Warning);
 		return false;
 	}
+	m_socket.setSocketOption(QAbstractSocket::KeepAliveOption, 1);
 	// 连接数据到达和超时的信号槽
 	connect(&m_socket, &QTcpSocket::readyRead, this, &ConnectionHandler::onReadyRead);
 	connect(&m_socket, &QTcpSocket::disconnected, this, &ConnectionHandler::disconnectFromPeer);
 	connect(&m_timer, &QTimer::timeout, this, &ConnectionHandler::onTimeout);
-	LogWidget::instance()->addLog(QString("Starting connection handler for %1").arg(m_socket.peerAddress().toString()), LogWidget::Info);
 	return true;
 }
 
@@ -52,7 +52,7 @@ void ConnectionHandler::startTimeout(int msec)
 
 void ConnectionHandler::onTimeout()
 {
-	LogWidget::instance()->addLog(QString("Connection timed out: %1").arg(m_socket.peerAddress().toString()), LogWidget::Warning);
+	LogWidget::instance()->addLog(QString("Connection timed out: %1, from %2").arg(m_socket.peerAddress().toString()).arg(m_roleStr), LogWidget::Warning);
 	disconnectFromPeer();
 }
 
@@ -77,7 +77,7 @@ void ConnectionHandler::disconnectFromPeer()
 		}
 		m_peer.reset();
 	}
-	LogWidget::instance()->addLog(QString("Disconnected: %1").arg(m_socket.peerAddress().toString()), LogWidget::Info);
+	LogWidget::instance()->addLog(QString("Disconnected: %1 from %2").arg(m_socket.peerAddress().toString()).arg(m_roleStr), LogWidget::Info);
 }
 
 QTcpSocket* ConnectionHandler::socket()
@@ -105,21 +105,27 @@ void ConnectionHandler::onReadyRead()
 					LogWidget::instance()->addLog("Received empty UUID in RequestRelay", LogWidget::Error);
 					return;
 				}
-				// 通知外部“有人请求中继”，由外部去调用 pairWith() 或其它逻辑
+				switch (requestRelay.role()) {
+				case RequestRelay::DESK_CONTROL:
+					m_roleStr = "DeskControl";
+					break;
+				case RequestRelay::DESK_SERVER:
+					m_roleStr = "DeskServer";
+					break;
+				default:
+					m_roleStr = "Unknown";
+					break;
+				}
+				LogWidget::instance()->addLog(QString("Received RequestRelay from %1, UUID: %2")
+					.arg(m_roleStr).arg(uuid), LogWidget::Info);
 				emit relayRequestReceived(uuid);
-				// --- 到这里握手就算成功了 ---
-				// 如果接下来又读到其他数据，那就等下一次 onReadyRead() 再处理
+
 				return;
 			}
 			else {
 				LogWidget::instance()->addLog("Unknown or unexpected RendezvousMessage type", LogWidget::Warning);
 				return;
 			}
-		}
-		else {
-			// 无法解析成 RendezvousMessage；说明这不是握手期合法数据
-			//LogWidget::instance()->addLog("Failed to parse RendezvousMessage from data (handshake stage)", LogWidget::Warning);
-			return;
 		}
 	}
 	else {

@@ -12,10 +12,21 @@ NetworkWorker::NetworkWorker(QObject* parent)
 
 NetworkWorker::~NetworkWorker()
 {
+	cleanup();
+}
+
+
+void NetworkWorker::cleanup()
+{
 	if (m_socket) {
-		m_socket->disconnectFromHost();
+		m_socket->disconnect();
+		if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+			m_socket->disconnectFromHost();
+		}
 		m_socket->deleteLater();
+		m_socket = nullptr;
 	}
+	m_buffer.clear();
 }
 
 void NetworkWorker::connectToServer(const QString& ip, quint16 port, const QString& uuid)
@@ -53,13 +64,11 @@ void NetworkWorker::connectToServer(const QString& ip, quint16 port, const QStri
 	}
 	m_socket = new QTcpSocket(this);
 
-	// 连接 socket 信号到本类槽
 	connect(m_socket, &QTcpSocket::connected, this, &NetworkWorker::onSocketConnected);
 	connect(m_socket, &QTcpSocket::readyRead, this, &NetworkWorker::onSocketReadyRead);
 	connect(m_socket, &QTcpSocket::errorOccurred, this, &NetworkWorker::onSocketError);
 	connect(m_socket, &QTcpSocket::disconnected, this, &NetworkWorker::onSocketDisconnected);
 
-	// 发起连接
 	m_socket->connectToHost(host, port);
 }
 
@@ -78,6 +87,7 @@ void NetworkWorker::sendRequestRelay()
 	RendezvousMessage msg;
 	RequestRelay* req = msg.mutable_request_relay();
 	req->set_uuid(m_uuid.toUtf8().constData(), m_uuid.toUtf8().size());
+	req->set_role(RequestRelay_DeskRole_DESK_CONTROL);
 
 	std::string outStr;
 	if (!msg.SerializeToString(&outStr)) {
@@ -97,7 +107,6 @@ void NetworkWorker::sendRequestRelay()
 
 void NetworkWorker::onSocketReadyRead()
 {
-	// 将收到的数据追加到缓冲区
 	m_buffer.append(m_socket->readAll());
 
 	// 协议： [4字节大端序包长] + [包数据]

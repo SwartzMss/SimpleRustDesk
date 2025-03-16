@@ -11,6 +11,8 @@ public:
 	explicit NetworkManager(QObject* parent = nullptr);
 	~NetworkManager();
 
+	void cleanup();
+
 	// 建立 TCP 连接
 	bool connectToServer(const QString& ip, quint16 port);
 	// 发送 PunchHoleRequest 消息（内部调用 MessageHandler）

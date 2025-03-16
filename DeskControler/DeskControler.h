@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QtWidgets/QWidget>
+#include "NetworkManager.h"
+#include "VideoReceiver.h"
 #include "ui_DeskControler.h"
 
 class NetworkManager;
@@ -21,7 +23,12 @@ private slots:
 
 private:
 	void setupVideoSession(const QString& relayServer, quint16 relayPort, const QString& status);
+	void destroyVideoSession();
+
+	void loadConfig();
+	void saveConfig();
 private:
 	Ui::DeskControlerClass ui;
-	NetworkManager* networkManager;
+	NetworkManager* m_networkManager;
+	VideoReceiver* m_videoReceiver;
 };

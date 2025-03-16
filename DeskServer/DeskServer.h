@@ -27,6 +27,7 @@ private:
 
 private:
 	Ui::DeskServerClass ui;
+	QString m_uuidStr;
 	PeerClient* m_peerClient;
 	RelayPeerClient* m_relayPeerClient;
 };

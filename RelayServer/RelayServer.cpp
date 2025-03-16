@@ -107,16 +107,15 @@ void RelayServer::tryPairing(const QString& uuid, std::shared_ptr<ConnectionHand
 {
 	// 如果已有等待中的连接，则建立中继，否则加入等待列表
 	if (mPeers.contains(uuid)) {
+		LogWidget::instance()->addLog("UUID matched", LogWidget::Info);
 		auto peer = mPeers.take(uuid);
 		// 建立双向数据转发
 		handler->pairWith(peer);
 		peer->pairWith(handler);
-		LogWidget::instance()->addLog("UUID matched", LogWidget::Info);
 	}
 	else {
 		mPeers.insert(uuid, handler);
 		// 启动一个定时器，若超时未配对则断开连接
 		handler->startTimeout(30000);  // 30秒超时
-		LogWidget::instance()->addLog("waiting for UUID ", LogWidget::Info);
 	}
 }

@@ -20,9 +20,21 @@ NetworkManager::NetworkManager(QObject* parent)
 
 NetworkManager::~NetworkManager()
 {
-	if (socket->state() != QAbstractSocket::UnconnectedState)
-		socket->disconnectFromHost();
+	cleanup();
 }
+
+void NetworkManager::cleanup()
+{
+	if (socket) {
+		socket->disconnect();
+		if (socket->state() != QAbstractSocket::UnconnectedState) {
+			socket->disconnectFromHost();
+		}
+		socket->deleteLater();
+		socket = nullptr;
+	}
+}
+
 
 bool NetworkManager::connectToServer(const QString& ip, quint16 port)
 {
@@ -30,8 +42,6 @@ bool NetworkManager::connectToServer(const QString& ip, quint16 port)
 	QUrl url = QUrl::fromUserInput(ip);
 	// 如果 URL 解析成功，则提取 host，否则使用原始字符串
 	QString host = url.host().isEmpty() ? ip : url.host();
-
-	LogWidget::instance()->addLog(QString("Connecting to host: %1, port: %2").arg(host).arg(port), LogWidget::Info);
 
 	QHostAddress resolvedAddress;
 	if (!resolvedAddress.setAddress(host)) {
@@ -76,12 +86,13 @@ void NetworkManager::sendPunchHoleRequest(const QString& uuid)
 void NetworkManager::onReadyRead()
 {
 	QByteArray data = socket->readAll();
-	// 将收到的数据交给 MessageHandler 解析
 	messageHandler.processReceivedData(data);
 }
 
 
 void NetworkManager::onSocketDisconnected()
 {
+	socket->deleteLater();
+	socket = nullptr;
 	emit disconnected();
 }

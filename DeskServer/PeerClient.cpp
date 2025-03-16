@@ -4,9 +4,10 @@
 #include <QUrl>
 #include <QtNetwork/QHostInfo>
 
-PeerClient::PeerClient(QObject* parent)
+PeerClient::PeerClient(const QString& uuid,QObject* parent)
 	: QObject(parent), m_socket(nullptr), m_serverPort(0), m_connected(false), m_isRelayOnline(false)
 {
+	m_uuid = uuid;
 	m_reconnectTimer = new QTimer(this);
 	m_reconnectTimer->setInterval(3000);  // 每 3 秒重连一次
 	m_reconnectTimer->setSingleShot(true);
@@ -80,9 +81,6 @@ void PeerClient::onConnected()
 	m_reconnectTimer->stop();
 	LogWidget::instance()->addLog("Connected successfully", LogWidget::Info);
 
-	// 生成 UUID 字符串并发送 RegisterPeer 消息
-	static QString fixedUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-	m_uuid = fixedUuid;
 	RegisterPeer regPeer;
 	regPeer.set_uuid(m_uuid.toStdString());
 
@@ -196,8 +194,10 @@ void PeerClient::onDisconnected()
 {
 	m_connected = false;
 	if (!m_isStopping) {
-		// 断开后启动重连
-		m_reconnectTimer->start();
+		m_reconnectTimer->stop();
+		m_socket->disconnectFromHost();
+		m_socket->deleteLater();
+		m_socket = nullptr;
 	}
 	emit errorOccurred("Disconnected from server");
 }
