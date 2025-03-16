@@ -185,7 +185,8 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 	VideoWidget* videoWidget = new VideoWidget();
 	videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 
-	QScrollArea* scrollArea = new QScrollArea();
+	QScrollArea* scrollArea = new QScrollArea(this);
+	scrollArea->setWindowFlags(Qt::Window);
 	scrollArea->setWidget(videoWidget);
 	scrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
 
