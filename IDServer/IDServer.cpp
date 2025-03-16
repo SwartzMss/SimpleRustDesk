@@ -51,6 +51,9 @@ void IDServer::onRegistrationSuccess(const QString& uuid, const QString& ip)
 			// 如果已存在则更新状态为 Online
 			QStandardItem* statusItem = model->item(row, 3);
 			statusItem->setText("Online");
+			// ip也有可能会更新
+			QStandardItem* ipItem = model->item(row, 1);
+			ipItem->setText(ip);
 			exist = true;
 			break;
 		}
