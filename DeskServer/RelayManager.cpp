@@ -59,23 +59,34 @@ void RelayManager::stop()
 
 void RelayManager::onSocketConnected()
 {
-    LogWidget::instance()->addLog("RelayManager: Connected to relay server via TCP", LogWidget::Info);
-    emit connected();
+	LogWidget::instance()->addLog("RelayManager: Connected to relay server via TCP", LogWidget::Info);
+	emit connected();
 
-    // Construct and send RequestRelay message.
-    RequestRelay req;
-    req.set_uuid(m_uuid.toStdString());
-    req.set_role(RequestRelay_DeskRole_DESK_SERVER);
-    RendezvousMessage relayMsg;
-    *relayMsg.mutable_request_relay() = req;
-    std::string reqStr;
-    if (relayMsg.SerializeToString(&reqStr)) {
-        m_socket->write(reqStr.data(), reqStr.size());
-        m_socket->flush();
-        LogWidget::instance()->addLog(QString("RelayManager: RequestRelay message sent %1").arg(m_uuid), LogWidget::Info);
-    } else {
-        emit errorOccurred("RelayManager: Failed to serialize RequestRelay message");
-    }
+	// 构造并发送 RequestRelay 消息
+	RequestRelay req;
+	req.set_uuid(m_uuid.toStdString());
+	req.set_role(RequestRelay_DeskRole_DESK_SERVER);
+	RendezvousMessage relayMsg;
+	*relayMsg.mutable_request_relay() = req;
+	std::string reqStr;
+	if (relayMsg.SerializeToString(&reqStr)) {
+		QByteArray data(reqStr.data(), static_cast<int>(reqStr.size()));
+
+		quint32 packetSize = static_cast<quint32>(data.size());
+		quint32 bigEndianSize = qToBigEndian(packetSize);
+		QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+		QByteArray fullData;
+		fullData.append(header);
+		fullData.append(data);
+
+		m_socket->write(fullData);
+		m_socket->flush();
+		LogWidget::instance()->addLog(QString("RelayManager: RequestRelay message sent %1").arg(m_uuid), LogWidget::Info);
+	}
+	else {
+		emit errorOccurred("RelayManager: Failed to serialize RequestRelay message");
+	}
 }
 
 void RelayManager::onSocketDisconnected()
@@ -100,26 +111,29 @@ void RelayManager::onSocketError(QAbstractSocket::SocketError error)
 void RelayManager::onEncodedPacketReady(const QByteArray& packet)
 {
 	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
-		// 先构造 4 字节网络序（大端序）的帧长度
-		quint32 packetSize = static_cast<quint32>(packet.size());
-		quint32 bigEndianSize = qToBigEndian(packetSize);
+		InpuVideoFrame videoFrame;
+		videoFrame.set_data(packet.data(), packet.size());
 
-		// 将这4个字节放到一个 QByteArray 里
+		RendezvousMessage msg;
+		*msg.mutable_inpuvideoframe() = videoFrame;
+
+		std::string outStr;
+		if (!msg.SerializeToString(&outStr)) {
+			LogWidget::instance()->addLog("RelayManager: Failed to serialize InpuVideoFrame message", LogWidget::Error);
+			return;
+		}
+		QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
+
+		quint32 packetSize = static_cast<quint32>(data.size());
+		quint32 bigEndianSize = qToBigEndian(packetSize);
 		QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
 
-		// 组合： [长度头][帧数据]
 		QByteArray fullData;
 		fullData.append(header);
-		fullData.append(packet);
+		fullData.append(data);
 
-		// 发送
 		m_socket->write(fullData);
 		m_socket->flush();
-
-		//LogWidget::instance()->addLog(
-		//	QString("RelayManager: Forwarded encoded packet (size %1 + 4-byte header)").arg(packet.size()),
-		//	LogWidget::Info
-		//);
 	}
 	else {
 		LogWidget::instance()->addLog(
@@ -128,3 +142,4 @@ void RelayManager::onEncodedPacketReady(const QByteArray& packet)
 		);
 	}
 }
+

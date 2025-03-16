@@ -8,6 +8,8 @@
 NetworkWorker::NetworkWorker(QObject* parent)
 	: QObject(parent)
 {
+	connect(&messageHandler, &MessageHandler::InpuVideoFrameReceived,
+		this, &NetworkWorker::packetReady);
 }
 
 NetworkWorker::~NetworkWorker()
@@ -107,8 +109,17 @@ void NetworkWorker::sendRequestRelay()
 		return;
 	}
 	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
+
+	quint32 packetSize = static_cast<quint32>(data.size());
+	quint32 bigEndianSize = qToBigEndian(packetSize);
+	QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+	QByteArray fullData;
+	fullData.append(header);
+	fullData.append(data);
+
 	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
-		m_socket->write(data);
+		m_socket->write(fullData);
 		m_socket->flush();
 		LogWidget::instance()->addLog(QString("Sent RequestRelay to [%1:%2] with uuid=%3")
 			.arg(m_socket->peerAddress().toString())
@@ -127,17 +138,14 @@ void NetworkWorker::onSocketReadyRead()
 		memcpy(&packetSize, m_buffer.constData(), 4);
 		packetSize = qFromBigEndian(packetSize);
 
-		// 如果数据不足一个包，就 break
 		if (m_buffer.size() < 4 + (int)packetSize) {
 			break;
 		}
 
-		// 拆一帧数据
 		QByteArray packetData = m_buffer.mid(4, packetSize);
 		m_buffer.remove(0, 4 + packetSize);
 
-		// 发射信号给解码线程
-		emit packetReady(packetData);
+		messageHandler.processReceivedData(packetData);
 	}
 }
 

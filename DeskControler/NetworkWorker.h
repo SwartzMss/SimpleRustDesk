@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QtNetwork/QTcpSocket>
 #include <QByteArray>
+#include "MessageHandler.h"
 
 class NetworkWorker : public QObject
 {
@@ -39,6 +40,8 @@ private:
 	QString m_uuid;
 	QString m_host;
 	quint16 m_port;
+	MessageHandler messageHandler;
+
 };
 
 #endif // NETWORKWORKER_H

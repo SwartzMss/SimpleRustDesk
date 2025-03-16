@@ -13,7 +13,6 @@ MessageHandler::~MessageHandler()
 QByteArray MessageHandler::createPunchHoleRequestMessage(const QString& uuid)
 {
 	QString uuidStr = QUuid::createUuid().toString(QUuid::WithoutBraces);
-	currentUuid = uuid;
 
 	PunchHoleRequest request;
 	request.set_uuid(uuid.toUtf8().constData(), uuid.toUtf8().size());
@@ -42,6 +41,10 @@ void MessageHandler::processReceivedData(const QByteArray& data)
 		int relayPort = response.relay_port();
 		int result = static_cast<int>(response.result());
 		emit punchHoleResponseReceived(relayServer, relayPort, result);
+	}
+	else if (msg.has_inpuvideoframe()) {
+		const InpuVideoFrame& frame = msg.inpuvideoframe();
+		emit InpuVideoFrameReceived(QByteArray::fromStdString(frame.data()));
 	}
 	else {
 		emit parseError("Received unknown message type");

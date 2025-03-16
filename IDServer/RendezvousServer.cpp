@@ -47,7 +47,6 @@ void RendezvousServer::stop() {
 void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpSocket* socket)
 {
 	QString uuid = QString::fromUtf8(req.uuid().data(), req.uuid().size());
-
 	QString id = QString::fromUtf8(req.id().data(), req.id().size());
 
 	tcpPunchMap.insert(id, socket);
@@ -64,7 +63,6 @@ void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpS
 	bool isOnline = tcpPunchMap.find(uuid) != tcpPunchMap.end();
 
 	if (!idExists || !isOnline) {
-
 		PunchHoleResponse response;
 		if (!idExists)
 		{
@@ -81,10 +79,19 @@ void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpS
 		QByteArray out;
 		out.resize(msg.ByteSizeLong());
 		msg.SerializeToArray(out.data(), out.size());
-		socket->write(out);
-	}
-	else{
 
+		// 添加4字节长度头
+		quint32 packetSize = static_cast<quint32>(out.size());
+		quint32 bigEndianSize = qToBigEndian(packetSize);
+		QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+		QByteArray fullData;
+		fullData.append(header);
+		fullData.append(out);
+
+		socket->write(fullData);
+	}
+	else {
 		PunchHole punchHole;
 		punchHole.set_id(id.toUtf8().constData(), id.toUtf8().size());
 		RendezvousMessage msg;
@@ -93,11 +100,21 @@ void RendezvousServer::handlePunchHoleRequest(const PunchHoleRequest& req, QTcpS
 		QByteArray out;
 		out.resize(msg.ByteSizeLong());
 		msg.SerializeToArray(out.data(), out.size());
-		QTcpSocket* socket = tcpPunchMap.value(uuid);
-		socket->write(out);
-	}
 
+		// 添加4字节长度头
+		quint32 packetSize = static_cast<quint32>(out.size());
+		quint32 bigEndianSize = qToBigEndian(packetSize);
+		QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+		QByteArray fullData;
+		fullData.append(header);
+		fullData.append(out);
+
+		QTcpSocket* targetSocket = tcpPunchMap.value(uuid);
+		targetSocket->write(fullData);
+	}
 }
+
 
 void RendezvousServer::handleRegisterPeer(const RegisterPeer& req, QTcpSocket* socket)
 {
@@ -107,24 +124,34 @@ void RendezvousServer::handleRegisterPeer(const RegisterPeer& req, QTcpSocket* s
 	response.set_result(Result::OK);
 	RendezvousMessage msg;
 	msg.mutable_register_peer_response()->CopyFrom(response);
+
 	QByteArray out;
 	out.resize(msg.ByteSizeLong());
 	msg.SerializeToArray(out.data(), out.size());
 
+	quint32 packetSize = static_cast<quint32>(out.size());
+	quint32 bigEndianSize = qToBigEndian(packetSize);
+	QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+	QByteArray fullData;
+	fullData.append(header);
+	fullData.append(out);
+
 	QString ip = socket->peerAddress().toString();
 	tcpPunchMap.insert(uuid, socket);
-	socket->write(out);
+	socket->write(fullData);
 	socket->setProperty("uuid", uuid);
 	// 发射信号，通知上层处理数据库和UI更新
 	emit registrationSuccess(uuid, ip);
 }
+
 
 void RendezvousServer::handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket* socket)
 {
 	QString id = QString::fromStdString(req.id());
 	auto it = tcpPunchMap.find(id);
 	if (it != tcpPunchMap.end()) {
-		QTcpSocket* socket = it.value();
+		QTcpSocket* targetSocket = it.value();
 
 		PunchHoleResponse response;
 		response.set_relay_port(req.relay_port());
@@ -137,12 +164,24 @@ void RendezvousServer::handlePunchHoleSent(const PunchHoleSent& req, QTcpSocket*
 		QByteArray out;
 		out.resize(msg.ByteSizeLong());
 		msg.SerializeToArray(out.data(), out.size());
-		socket->write(out);
+
+		// 构造4字节大端序长度头
+		quint32 packetSize = static_cast<quint32>(out.size());
+		quint32 bigEndianSize = qToBigEndian(packetSize);
+		QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+		// 组合完整数据：[长度头][消息数据]
+		QByteArray fullData;
+		fullData.append(header);
+		fullData.append(out);
+
+		targetSocket->write(fullData);
 	}
 	else {
 		LogWidget::instance()->addLog("PunchHoleSent would be dropped", LogWidget::Warning);
 	}
 }
+
 
 void RendezvousServer::onNewTcpConnection() {
 	while (tcpServer->hasPendingConnections()) {
@@ -155,10 +194,30 @@ void RendezvousServer::onNewTcpConnection() {
 	}
 }
 
-void RendezvousServer::onTcpReadyRead(QTcpSocket* socket) {
-	QByteArray data = socket->readAll();
-	msgProcessor->processMessage(data, socket);
+void RendezvousServer::onTcpReadyRead(QTcpSocket* socket)
+{
+	QByteArray buffer = socket->property("buffer").toByteArray();
+
+	buffer.append(socket->readAll());
+
+	while (buffer.size() >= 4) {
+		quint32 packetSize;
+		memcpy(&packetSize, buffer.constData(), 4);
+		packetSize = qFromBigEndian(packetSize);
+
+		if (buffer.size() < 4 + static_cast<int>(packetSize))
+			break;
+
+		QByteArray messageData = buffer.mid(4, packetSize);
+
+		buffer.remove(0, 4 + packetSize);
+
+		msgProcessor->processMessage(messageData, socket);
+	}
+
+	socket->setProperty("buffer", buffer);
 }
+
 
 void RendezvousServer::onTcpDisconnected(QTcpSocket* socket) {
 	QString peerAddr = socket->peerAddress().toString() + ":" + QString::number(socket->peerPort());

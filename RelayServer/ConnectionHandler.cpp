@@ -89,49 +89,62 @@ QTcpSocket* ConnectionHandler::socket()
 
 void ConnectionHandler::onReadyRead()
 {
-	if (m_isDisconnecting)
-		return;
-	QByteArray data = m_socket.readAll();
+	QByteArray buffer = m_socket.property("buffer").toByteArray();
+	buffer.append(m_socket.readAll());
 
-	// 如果还没配对（还没处理握手），就先尝试解析握手
-	if (!m_peer) {
-		RendezvousMessage msg;
-		// 尝试将所有数据当作一个消息来解析
-		if (msg.ParseFromArray(data.constData(), data.size())) {
-			if (msg.has_request_relay()) {
-				RequestRelay requestRelay = msg.request_relay();
-				QString uuid = QString::fromStdString(requestRelay.uuid());
-				if (uuid.isEmpty()) {
-					LogWidget::instance()->addLog("Received empty UUID in RequestRelay", LogWidget::Error);
-					return;
-				}
-				switch (requestRelay.role()) {
-				case RequestRelay::DESK_CONTROL:
-					m_roleStr = "DeskControl";
-					break;
-				case RequestRelay::DESK_SERVER:
-					m_roleStr = "DeskServer";
-					break;
-				default:
-					m_roleStr = "Unknown";
-					break;
-				}
-				LogWidget::instance()->addLog(QString("Received RequestRelay from %1, UUID: %2")
-					.arg(m_roleStr).arg(uuid), LogWidget::Info);
-				emit relayRequestReceived(uuid);
+	while (buffer.size() >= 4) {
+		quint32 packetSize;
+		memcpy(&packetSize, buffer.constData(), 4);
+		packetSize = qFromBigEndian(packetSize);
 
-				return;
+		if (buffer.size() < 4 + static_cast<int>(packetSize))
+			break;
+
+		QByteArray packetData = buffer.mid(4, packetSize);
+		QByteArray fullPacket;
+		{
+			quint32 bigEndianSize = qToBigEndian(packetSize);
+			fullPacket.append(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+			fullPacket.append(packetData);
+		}
+
+		buffer.remove(0, 4 + packetSize);
+
+		// 如果还未完成握手（即未配对），则进行握手消息处理
+		if (!m_peer) {
+			RendezvousMessage msg;
+			if (msg.ParseFromArray(packetData.constData(), packetData.size())) {
+				if (msg.has_request_relay()) {
+					RequestRelay requestRelay = msg.request_relay();
+					QString uuid = QString::fromStdString(requestRelay.uuid());
+					switch (requestRelay.role()) {
+					case RequestRelay::DESK_CONTROL:
+						m_roleStr = "DeskControl";
+						break;
+					case RequestRelay::DESK_SERVER:
+						m_roleStr = "DeskServer";
+						break;
+					default:
+						m_roleStr = "Unknown";
+						break;
+					}
+					LogWidget::instance()->addLog(QString("Received RequestRelay from %1, UUID: %2")
+						.arg(m_roleStr).arg(uuid), LogWidget::Info);
+					emit relayRequestReceived(uuid);
+				}
 			}
 			else {
-				LogWidget::instance()->addLog("Unknown or unexpected RendezvousMessage type", LogWidget::Warning);
-				return;
+				LogWidget::instance()->addLog("Failed to parse handshake message", LogWidget::Warning);
+			}
+		}
+		else {
+			// 如果已经配对，直接将完整的消息包（包括头）转发给对端
+			if (m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
+				m_peer->socket()->write(fullPacket);
 			}
 		}
 	}
-	else {
-		// 已配对，后续直接转发
-		if (m_peer->socket()->state() == QAbstractSocket::ConnectedState) {
-			m_peer->socket()->write(data);
-		}
-	}
+	// 将剩余的数据存回 socket 属性中，供下次读取使用
+	m_socket.setProperty("buffer", buffer);
 }
+

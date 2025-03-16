@@ -50,6 +50,6 @@ private:
 	int m_relayPort;
 	QString m_uuid;
     RelayManager* m_relayManager;
-
+	QByteArray m_buffer;
 };
 
