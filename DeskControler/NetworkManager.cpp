@@ -14,8 +14,6 @@ NetworkManager::NetworkManager(QObject* parent)
 	// 将 MessageHandler 内部信号转发到本类信号
 	connect(&messageHandler, &MessageHandler::punchHoleResponseReceived,
 		this, &NetworkManager::punchHoleResponseReceived);
-	connect(&messageHandler, &MessageHandler::parseError,
-		this, [this](const QString& error) { emit networkError(error); });
 }
 
 NetworkManager::~NetworkManager()
@@ -86,8 +84,17 @@ bool NetworkManager::connectToServer(const QString& ip, quint16 port)
 void NetworkManager::sendPunchHoleRequest(const QString& uuid)
 {
 	QByteArray data = messageHandler.createPunchHoleRequestMessage(uuid);
+
+	quint32 packetSize = static_cast<quint32>(data.size());
+	quint32 bigEndianSize = qToBigEndian(packetSize);
+	QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+	QByteArray fullData;
+	fullData.append(header);
+	fullData.append(data);
+
 	if (socket->state() == QAbstractSocket::ConnectedState) {
-		socket->write(data);
+		socket->write(fullData);
 		LogWidget::instance()->addLog(QString("Punch hole request sent for UUID: %1").arg(uuid), LogWidget::Info);
 	}
 	else {
@@ -97,8 +104,22 @@ void NetworkManager::sendPunchHoleRequest(const QString& uuid)
 
 void NetworkManager::onReadyRead()
 {
-	QByteArray data = socket->readAll();
-	messageHandler.processReceivedData(data);
+	m_buffer.append(socket->readAll());
+
+	while (m_buffer.size() >= 4) {
+		quint32 packetSize;
+		memcpy(&packetSize, m_buffer.constData(), 4);
+		packetSize = qFromBigEndian(packetSize);
+
+		if (m_buffer.size() < 4 + static_cast<int>(packetSize))
+			break;
+
+		QByteArray packetData = m_buffer.mid(4, packetSize);
+
+		m_buffer.remove(0, 4 + packetSize);
+
+		messageHandler.processReceivedData(packetData);
+	}
 }
 
 

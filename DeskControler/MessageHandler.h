@@ -18,9 +18,9 @@ public:
 signals:
 	// 当接收到 PunchHoleResponse 时发出信号，反馈 relay_server、relay_port 和结果（枚举值）
 	void punchHoleResponseReceived(const QString& relayServer, int relayPort, int result);
+
+	void InpuVideoFrameReceived(const QByteArray& packetData);
 	// 消息解析错误
 	void parseError(const QString& error);
 
-private:
-	QString currentUuid; // 保存当前请求的 uuid，如有需要可用
 };

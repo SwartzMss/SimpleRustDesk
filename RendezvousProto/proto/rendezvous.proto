@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 
-
 enum Result {
   OK = 0;
   ID_NOT_EXIST = 1;
@@ -50,6 +49,31 @@ message PunchHoleSent {
   bytes id = 4;
 }
 
+message InputControlEvent {
+  oneof event {
+    MouseEvent mouse_event = 1;
+    KeyboardEvent keyboard_event = 2;
+  }
+}
+
+
+message InpuVideoFrame{
+  bytes data = 1;
+ 
+}
+
+message MouseEvent {
+  int32 mask = 1;
+  sint32 x = 2;
+  sint32 y = 3;
+  repeated ControlKey modifiers = 4;
+}
+
+message KeyboardEvent {
+  ControlKey key = 2;
+  bool pressed = 3;
+}
+
 
 message RendezvousMessage {
   oneof union {
@@ -61,6 +85,44 @@ message RendezvousMessage {
     Heartbeat heartbeat = 6;
     PunchHole punch_hole = 7;
     PunchHoleSent punch_hole_sent = 8;
+    InpuVideoFrame inpuVideoFrame = 9;
+    InputControlEvent inputControlEvent = 10;
 
   }
+}
+
+enum ControlKey {
+  Unknown = 0;
+  Alt = 1;
+  Backspace = 2;
+  CapsLock = 3;
+  Control = 4;
+  Delete = 5;
+  DownArrow = 6;
+  End = 7;
+  Escape = 8;
+  F1 = 9;
+  F2 = 10;
+  F3 = 11;
+  F4 = 12;
+  F5 = 13;
+  F6 = 14;
+  F7 = 15;
+  F8 = 16;
+  F9 = 17;
+  F10 = 18;
+  F11 = 19;
+  F12 = 20;
+  Home = 21;
+  LeftArrow = 22;
+  Meta = 23;       // Windows ¼ü
+  PageDown = 24;
+  PageUp = 25;
+  Return = 26;     // Enter ¼ü
+  RightArrow = 27;
+  Shift = 28;
+  Space = 29;
+  Tab = 30;
+  UpArrow = 31;
+  Insert = 32;
 }

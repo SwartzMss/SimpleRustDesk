@@ -93,101 +93,130 @@ void PeerClient::onConnected()
 		return;
 	}
 	QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
-	m_socket->write(data);
+
+	quint32 packetSize = static_cast<quint32>(data.size());
+	quint32 bigEndianSize = qToBigEndian(packetSize);
+	QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+	QByteArray fullData;
+	fullData.append(header);
+	fullData.append(data);
+
+	m_socket->write(fullData);
 	m_socket->flush();
 	LogWidget::instance()->addLog(QString("Sent RegisterPeer message with uuid %1").arg(m_uuid), LogWidget::Info);
 }
 
 void PeerClient::onReadyRead()
 {
-	QByteArray data = m_socket->readAll();
-	RendezvousMessage msg;
-	if (!msg.ParseFromArray(data.data(), data.size())) {
-		emit errorOccurred("Failed to parse RendezvousMessage");
-		return;
-	}
+	m_buffer.append(m_socket->readAll());
 
-	if (msg.has_register_peer_response()) {
-		// 原来的注册处理逻辑
-		RegisterPeerResponse response = msg.register_peer_response();
-		if (response.result() == Result::OK) {
-			emit registrationResult(Result::OK);
-		}
-		else if (response.result() == Result::INNER_ERROR) {
-			emit registrationResult(Result::INNER_ERROR);
-		}
-		else {
-			emit registrationResult(response.result());
-		}
-	}
-	else if (msg.has_punch_hole()) {
-		// 收到来自 TCP 的 PunchHole 消息
-		LogWidget::instance()->addLog("Received PunchHole message from server", LogWidget::Info);
+	while (m_buffer.size() >= 4) {
+		quint32 packetSize;
+		memcpy(&packetSize, m_buffer.constData(), 4);
+		packetSize = qFromBigEndian(packetSize);
 
-		// 构造 PunchHoleSent 消息，填充所需字段（这里的 relay_server 和 relay_port 可根据实际情况设置）
-		PunchHoleSent sent;
-		sent.set_id(msg.punch_hole().id());
-		if (!m_isRelayOnline)
-		{
-			sent.set_result(Result::RELAYSERVER_OFFLINE);
-		}
-		else
-		{
-			sent.set_relay_server(m_relayIP.toStdString());
-			sent.set_relay_port(m_relayPort);
-			sent.set_result(Result::OK);
-		}
+		if (m_buffer.size() < 4 + static_cast<int>(packetSize))
+			break;
 
-		// 将 PunchHoleSent 消息嵌入到 RendezvousMessage 中
-		RendezvousMessage reply;
-		*reply.mutable_punch_hole_sent() = sent;
+		QByteArray data = m_buffer.mid(4, packetSize);
 
-		std::string outStr;
-		if (!reply.SerializeToString(&outStr)) {
-			emit errorOccurred("Failed to serialize PunchHoleSent message");
+		m_buffer.remove(0, 4 + packetSize);
+		RendezvousMessage msg;
+		if (!msg.ParseFromArray(data.data(), data.size())) {
+			emit errorOccurred("Failed to parse RendezvousMessage");
 			return;
 		}
-		m_socket->write(outStr.data(), outStr.size());
-		m_socket->flush();
-		LogWidget::instance()->addLog("Sent PunchHoleSent message in response", LogWidget::Info);
 
-		// If the result is OK, start the RelayManager to establish a TCP connection to the relay server.
-		if (sent.result() == Result::OK) {
-			if (!m_relayManager) {
-				m_relayManager = new RelayManager(this);
+		if (msg.has_register_peer_response()) {
+			RegisterPeerResponse response = msg.register_peer_response();
+			if (response.result() == Result::OK) {
+				emit registrationResult(Result::OK);
 			}
-			QUrl relayUrl = QUrl::fromUserInput(m_relayIP);
-			QString relayHost = relayUrl.host().isEmpty() ? m_relayIP : relayUrl.host();
+			else if (response.result() == Result::INNER_ERROR) {
+				emit registrationResult(Result::INNER_ERROR);
+			}
+			else {
+				emit registrationResult(response.result());
+			}
+		}
+		else if (msg.has_punch_hole()) {
+			// 收到来自 TCP 的 PunchHole 消息
+			LogWidget::instance()->addLog("Received PunchHole message from server", LogWidget::Info);
 
-			QHostAddress resolvedRelayAddress;
-			if (!resolvedRelayAddress.setAddress(relayHost)) {
-				// 如果直接转换失败，则尝试 DNS 解析
-				QHostInfo info = QHostInfo::fromName(relayHost);
-				if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
-					// 可以在这里记录错误日志或返回错误
-					LogWidget::instance()->addLog("Failed to resolve Relay IP: " + relayHost, LogWidget::Error);
-					return;
+			// 构造 PunchHoleSent 消息，填充所需字段（这里的 relay_server 和 relay_port 可根据实际情况设置）
+			PunchHoleSent sent;
+			sent.set_id(msg.punch_hole().id());
+			if (!m_isRelayOnline)
+			{
+				sent.set_result(Result::RELAYSERVER_OFFLINE);
+			}
+			else
+			{
+				sent.set_relay_server(m_relayIP.toStdString());
+				sent.set_relay_port(m_relayPort);
+				sent.set_result(Result::OK);
+			}
+
+			RendezvousMessage reply;
+			*reply.mutable_punch_hole_sent() = sent;
+
+			std::string outStr;
+			if (!reply.SerializeToString(&outStr)) {
+				emit errorOccurred("Failed to serialize PunchHoleSent message");
+				return;
+			}
+			QByteArray data(outStr.data(), static_cast<int>(outStr.size()));
+
+			quint32 packetSize = static_cast<quint32>(data.size());
+			quint32 bigEndianSize = qToBigEndian(packetSize);
+			QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+
+			QByteArray fullData;
+			fullData.append(header);
+			fullData.append(data);
+
+			m_socket->write(fullData);
+			m_socket->flush();
+			LogWidget::instance()->addLog("Sent PunchHoleSent message in response", LogWidget::Info);
+
+			// If the result is OK, start the RelayManager to establish a TCP connection to the relay server.
+			if (sent.result() == Result::OK) {
+				if (!m_relayManager) {
+					m_relayManager = new RelayManager(this);
 				}
-				// 遍历地址列表，筛选 IPv4 地址
-				bool foundIPv4 = false;
-				for (const QHostAddress& address : info.addresses()) {
-					if (address.protocol() == QAbstractSocket::IPv4Protocol) {
-						resolvedRelayAddress = address;
-						foundIPv4 = true;
-						break;
+				QUrl relayUrl = QUrl::fromUserInput(m_relayIP);
+				QString relayHost = relayUrl.host().isEmpty() ? m_relayIP : relayUrl.host();
+
+				QHostAddress resolvedRelayAddress;
+				if (!resolvedRelayAddress.setAddress(relayHost)) {
+					// 如果直接转换失败，则尝试 DNS 解析
+					QHostInfo info = QHostInfo::fromName(relayHost);
+					if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
+						LogWidget::instance()->addLog("Failed to resolve Relay IP: " + relayHost, LogWidget::Error);
+						return;
+					}
+					// 遍历地址列表，筛选 IPv4 地址
+					bool foundIPv4 = false;
+					for (const QHostAddress& address : info.addresses()) {
+						if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+							resolvedRelayAddress = address;
+							foundIPv4 = true;
+							break;
+						}
+					}
+					if (!foundIPv4) {
+						LogWidget::instance()->addLog("No IPv4 address found for Relay IP: " + relayHost, LogWidget::Error);
+						return;
 					}
 				}
-				if (!foundIPv4) {
-					LogWidget::instance()->addLog("No IPv4 address found for Relay IP: " + relayHost, LogWidget::Error);
-					return;
-				}
-			}
 
-			m_relayManager->start(resolvedRelayAddress, m_relayPort, m_uuid);
+				m_relayManager->start(resolvedRelayAddress, m_relayPort, m_uuid);
+			}
 		}
-	}
-	else {
-		LogWidget::instance()->addLog("Received unknown message type", LogWidget::Warning);
+		else {
+			LogWidget::instance()->addLog("Received unknown message type", LogWidget::Warning);
+		}
 	}
 }
 

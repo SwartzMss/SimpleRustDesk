@@ -33,4 +33,5 @@ private slots:
 private:
 	QTcpSocket* socket;
 	MessageHandler messageHandler;  // 内部包含消息处理逻辑
+	QByteArray m_buffer;
 };
