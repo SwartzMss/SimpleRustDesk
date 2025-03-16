@@ -33,42 +33,58 @@ DeskServer::~DeskServer()
 void DeskServer::loadConfig()
 {
 	QFile file("DeskServer.json");
-	if (!file.exists()) {
-		// 文件不存在，创建默认配置
-		QJsonObject defaultConfig;
-		defaultConfig["server"] = QJsonObject{
+	QJsonObject config;
+	bool valid = false;
+
+	if (file.exists()) {
+		if (file.open(QIODevice::ReadOnly)) {
+			QByteArray data = file.readAll();
+			file.close();
+			QJsonDocument doc = QJsonDocument::fromJson(data);
+			// 如果 JSON 格式正确且是对象，就使用文件中的配置
+			if (!doc.isNull() && doc.isObject()) {
+				config = doc.object();
+				valid = true;
+			}
+		}
+	}
+
+	// 如果文件不存在或格式不正确，则采用默认配置
+	if (!valid) {
+		config["server"] = QJsonObject{
 			{"ip", "127.0.0.1"},
 			{"port", 21116}
 		};
-		defaultConfig["relay"] = QJsonObject{
+		config["relay"] = QJsonObject{
 			{"ip", "127.0.0.1"},
 			{"port", 21117}
 		};
+		// 默认情况下生成一个新的 uuid
+		config["uuid"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-		QJsonDocument doc(defaultConfig);
+		// 写入默认配置到文件
 		if (file.open(QIODevice::WriteOnly)) {
+			QJsonDocument doc(config);
 			file.write(doc.toJson());
 			file.close();
 		}
-	}
-	// 打开配置文件并解析
-	if (file.open(QIODevice::ReadOnly)) {
-		QByteArray data = file.readAll();
-		file.close();
-		QJsonDocument doc = QJsonDocument::fromJson(data);
-		if (!doc.isNull() && doc.isObject()) {
-			QJsonObject config = doc.object();
-			QJsonObject serverObj = config["server"].toObject();
-			QJsonObject relayObj = config["relay"].toObject();
-
-			// 设置 UI 输入框的默认值
-			ui.iPLineEdit->setText(serverObj["ip"].toString("127.0.0.1"));
-			ui.portLineEdit_->setText(QString::number(serverObj["port"].toInt(21116)));
-			ui.iPLineEdit_3->setText(relayObj["ip"].toString("127.0.0.1"));
-			ui.portLineEdit_2->setText(QString::number(relayObj["port"].toInt(21117)));
+		else {
+			qWarning() << "Could not create or write to configuration file.";
 		}
 	}
+
+	// 从配置中读取值
+	QJsonObject serverObj = config["server"].toObject();
+	QJsonObject relayObj = config["relay"].toObject();
+	m_uuidStr = config["uuid"].toString() == "" ? QUuid::createUuid().toString(QUuid::WithoutBraces): config["uuid"].toString();
+
+	// 设置 UI 输入框的默认值
+	ui.iPLineEdit->setText(serverObj["ip"].toString("127.0.0.1"));
+	ui.portLineEdit_->setText(QString::number(serverObj["port"].toInt(21116)));
+	ui.iPLineEdit_3->setText(relayObj["ip"].toString("127.0.0.1"));
+	ui.portLineEdit_2->setText(QString::number(relayObj["port"].toInt(21117)));
 }
+
 
 // 保存当前配置到文件
 void DeskServer::saveConfig()
@@ -83,6 +99,8 @@ void DeskServer::saveConfig()
 
 	config["server"] = serverObj;
 	config["relay"] = relayObj;
+
+	config["uuid"] = m_uuidStr;
 
 	QJsonDocument doc(config);
 	QFile file("DeskServer.json");
@@ -139,7 +157,7 @@ void DeskServer::onStartClicked()
 		}
 
 		saveConfig();
-		m_peerClient = new PeerClient(this);
+		m_peerClient = new PeerClient(m_uuidStr,this);
 
 		m_peerClient->setRelayInfo(relayHost, relayPort);
 		connect(m_peerClient, &PeerClient::registrationResult, this, &DeskServer::onRegistrationResult);

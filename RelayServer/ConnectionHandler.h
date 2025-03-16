@@ -46,6 +46,7 @@ private:
 	// 配对的对端连接
 	std::shared_ptr<ConnectionHandler> m_peer;
 	bool m_isDisconnecting = false;
+	QString m_roleStr;
 };
 
 #endif // CONNECTIONHANDLER_H

@@ -17,6 +17,7 @@ public:
 
 	// 主线程调用，用于发起连接
 	void startConnect(const QString& host, quint16 port, const QString& uuid);
+	void stopReceiving();
 
 signals:
 	// 当成功解码一帧时，把图像发给外层（比如给 VideoWidget 显示）
@@ -35,6 +36,7 @@ private:
 	QThread* m_decodeThread = nullptr;
 	NetworkWorker* m_netWorker = nullptr;
 	VideoDecoderWorker* m_decoderWorker = nullptr;
+	bool m_stopped;
 };
 
 #endif // VIDEORECEIVER_H

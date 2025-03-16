@@ -10,7 +10,7 @@
 class PeerClient : public QObject {
 	Q_OBJECT
 public:
-	explicit PeerClient(QObject* parent = nullptr);
+	explicit PeerClient(const QString& uuid, QObject* parent = nullptr);
 	~PeerClient();
 
 	// 启动连接，传入服务器 IP 和端口

@@ -1,5 +1,5 @@
 #include "VideoDecoderWorker.h"
-#include "LogWidget.h"   // 用于日志输出
+#include "LogWidget.h"
 
 VideoDecoderWorker::VideoDecoderWorker(QObject* parent)
 	: QObject(parent)
@@ -26,6 +26,11 @@ VideoDecoderWorker::VideoDecoderWorker(QObject* parent)
 }
 
 VideoDecoderWorker::~VideoDecoderWorker()
+{
+	cleanup();
+}
+
+void VideoDecoderWorker::cleanup()
 {
 	if (swsCtx) {
 		sws_freeContext(swsCtx);
@@ -54,7 +59,10 @@ void VideoDecoderWorker::decodePacket(const QByteArray& packetData)
 
 	int ret = avcodec_send_packet(codecCtx, pkt);
 	if (ret < 0) {
-		LogWidget::instance()->addLog(QString("Error sending packet for decoding"), LogWidget::Warning);
+		char errbuf[AV_ERROR_MAX_STRING_SIZE];
+		av_strerror(ret, errbuf, sizeof(errbuf));
+		// 不是完整帧的话 这边的会报错， 暂时先去掉日志
+		// LogWidget::instance()->addLog(QString("Error sending packet for decoding: %1").arg(errbuf), LogWidget::Warning);
 		av_packet_free(&pkt);
 		return;
 	}

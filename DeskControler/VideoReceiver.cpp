@@ -45,11 +45,20 @@ VideoReceiver::VideoReceiver(QObject* parent)
 
 VideoReceiver::~VideoReceiver()
 {
-    // 让线程安全退出
-    m_networkThread->quit();
-    m_decodeThread->quit();
-    m_networkThread->wait();
-    m_decodeThread->wait();
+    stopReceiving();
+}
+
+void VideoReceiver::stopReceiving()
+{
+	if (m_stopped)
+		return;
+	QMetaObject::invokeMethod(m_netWorker, "cleanup", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(m_decoderWorker, "cleanup", Qt::QueuedConnection);
+	m_networkThread->quit();
+	m_decodeThread->quit();
+	m_networkThread->wait();
+	m_decodeThread->wait();
+    m_stopped = true;
 }
 
 void VideoReceiver::startConnect(const QString& host, quint16 port, const QString& uuid)
@@ -62,6 +71,7 @@ void VideoReceiver::startConnect(const QString& host, quint16 port, const QStrin
         Q_ARG(QString, host),
         Q_ARG(quint16, port),
         Q_ARG(QString, uuid));
+    m_stopped = false;
 }
 
 void VideoReceiver::onFrameDecoded(const QImage& img)

@@ -18,7 +18,7 @@ void VideoWidget::setFrame(const QImage& image)
 		m_firstFrame = false;
 	}
 
-	update(); // 通知重绘
+	update();
 }
 
 void VideoWidget::paintEvent(QPaintEvent* event)

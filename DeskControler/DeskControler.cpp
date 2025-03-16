@@ -1,36 +1,91 @@
 #include "DeskControler.h"
-#include "NetworkManager.h"
 #include <QScrollArea>
-#include "VideoReceiver.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QFile>
 #include "VideoWidget.h"
-#include <QMessageBox>
 #include "LogWidget.h"
 
 DeskControler::DeskControler(QWidget* parent)
 	: QWidget(parent),
-	networkManager(new NetworkManager(this))
+	 m_networkManager(nullptr),
+	 m_videoReceiver(nullptr)
 {
 	ui.setupUi(this);
 	// 将 LogWidget 放到界面上
 	LogWidget::instance()->init(ui.widget);
+	loadConfig();
 
 	// 当点击按钮时，发起 TCP 连接并发送 PunchHoleRequest
 	connect(ui.pushButton, &QPushButton::clicked,
 		this, &DeskControler::onConnectClicked);
-
-	// 当收到 NetworkManager 的 PunchHoleResponse 信号时调用本类槽
-	connect(networkManager, &NetworkManager::punchHoleResponseReceived,
-		this, &DeskControler::onPunchHoleResponse);
-	// 网络出错
-	connect(networkManager, &NetworkManager::networkError,
-		this, &DeskControler::onNetworkError);
-	// 连接断开
-	connect(networkManager, &NetworkManager::disconnected,
-		this, &DeskControler::onNetworkDisconnected);
 }
 
 DeskControler::~DeskControler()
 {
+}
+
+
+void DeskControler::loadConfig()
+{
+	QFile file("DeskControler.json");
+	QJsonObject config;
+	bool valid = false;
+
+	if (file.exists()) {
+		if (file.open(QIODevice::ReadOnly)) {
+			QByteArray data = file.readAll();
+			file.close();
+			QJsonDocument doc = QJsonDocument::fromJson(data);
+			if (!doc.isNull() && doc.isObject()) {
+				config = doc.object();
+				valid = true;
+			}
+		}
+	}
+	// 如果文件不存在或格式错误，则使用默认值并重写配置文件
+	if (!valid) {
+		config["server"] = QJsonObject{
+			{"ip", "127.0.0.1"},
+			{"port", 21116}
+		};
+		config["uuid"] = "";
+
+		if (file.open(QIODevice::WriteOnly)) {
+			QJsonDocument doc(config);
+			file.write(doc.toJson());
+			file.close();
+		}
+
+	}
+
+	// 从配置中读取数据
+	QJsonObject serverObj = config["server"].toObject();
+	QString ip = serverObj["ip"].toString("127.0.0.1");
+	int port = serverObj["port"].toInt(21116);
+	QString uuid = config["uuid"].toString("");
+
+	// 设置 UI 控件
+	ui.ipLineEdit_->setText(ip);
+	ui.portLineEdit_->setText(QString::number(port));
+	ui.lineEdit->setText(uuid);
+}
+
+void DeskControler::saveConfig()
+{
+	QJsonObject config;
+	QJsonObject serverObj;
+	serverObj["ip"] = ui.ipLineEdit_->text().trimmed();
+	serverObj["port"] = ui.portLineEdit_->text().toInt();
+	config["server"] = serverObj;
+	config["uuid"] = ui.lineEdit->text().trimmed();
+
+	QJsonDocument doc(config);
+	QFile file("DeskControler.json");
+	if (file.open(QIODevice::WriteOnly)) {
+		file.write(doc.toJson());
+		file.close();
+	}
 }
 
 void DeskControler::onConnectClicked()
@@ -43,24 +98,40 @@ void DeskControler::onConnectClicked()
 		LogWidget::instance()->addLog("please check IP / Port / Uuid", LogWidget::Warning);
 		return;
 	}
-	ui.pushButton->setEnabled(false);
 
+	saveConfig();
 	LogWidget::instance()->addLog(
 		QString("Attempting to connect to server at %1:%2 with UUID: %3").arg(ip).arg(port).arg(uuid),
 		LogWidget::Info
 	);
-	// 连接到服务端（阻塞 3 秒等结果），失败则提示
-	if (!networkManager->connectToServer(ip, port)) {
-		LogWidget::instance()->addLog(
-			QString("Failed to connect to server at %1:%2").arg(ip).arg(port),
-			LogWidget::Error
-		);
-		ui.pushButton->setEnabled(true);
+
+	m_networkManager = new NetworkManager(this);
+
+	// 当收到 NetworkManager 的 PunchHoleResponse 信号时调用本类槽
+	connect(m_networkManager, &NetworkManager::punchHoleResponseReceived,
+		this, &DeskControler::onPunchHoleResponse);
+	// 网络出错
+	connect(m_networkManager, &NetworkManager::networkError,
+		this, &DeskControler::onNetworkError);
+	// 连接断开
+	connect(m_networkManager, &NetworkManager::disconnected,
+		this, &DeskControler::onNetworkDisconnected);
+
+	if (!m_networkManager->connectToServer(ip, port)) {
+		m_networkManager->cleanup();
+		delete m_networkManager;
+		m_networkManager = nullptr;
 		return;
 	}
+
+	ui.ipLineEdit_->setEnabled(false);
+	ui.portLineEdit_->setEnabled(false);
+	ui.lineEdit->setEnabled(false);
+	ui.pushButton->setEnabled(false);
+
 	LogWidget::instance()->addLog("Server connection established. Sending punch hole request.", LogWidget::Info);
 	// 连接成功后，发送 PunchHoleRequest
-	networkManager->sendPunchHoleRequest(uuid);
+	m_networkManager->sendPunchHoleRequest(uuid);
 
 }
 
@@ -111,8 +182,6 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 		LogWidget::Info
 	);
 
-
-	VideoReceiver* videoReceiver = new VideoReceiver(this);
 	VideoWidget* videoWidget = new VideoWidget();
 	videoWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 
@@ -120,9 +189,17 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 	scrollArea->setWidget(videoWidget);
 	scrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
 
-	// 当解码出帧时，发送到 videoWidget 显示
-	connect(videoReceiver, &VideoReceiver::frameReady, this, [videoWidget, scrollArea](const QImage& img) {
+	connect(scrollArea, &QObject::destroyed, this, [this]() {
+		destroyVideoSession();
+		LogWidget::instance()->addLog("Video widget closed by user.", LogWidget::Info);
+		});
 
+	scrollArea->resize(QSize(1024, 768));
+	scrollArea->show();
+
+	m_videoReceiver = new VideoReceiver(this);
+
+	connect(m_videoReceiver, &VideoReceiver::frameReady, this, [videoWidget, scrollArea](const QImage& img) {
 		static bool firstFrame = true;
 		if (firstFrame && !img.isNull())
 		{
@@ -130,27 +207,31 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 			QSize initialSize = img.size().expandedTo(QSize(800, 600));
 			scrollArea->resize(initialSize);
 			firstFrame = false;
-			scrollArea->show();
 		}
 		videoWidget->setFrame(img);
-
 		});
-
-	connect(scrollArea, &QObject::destroyed, this, [this]() {
-		ui.pushButton->setEnabled(true);
-		ui.ipLineEdit_->setEnabled(true);
-		ui.portLineEdit_->setEnabled(true);
-		ui.lineEdit->setEnabled(true);
-		LogWidget::instance()->addLog("Video widget closed by user.", LogWidget::Info);
-		});
-
-	ui.ipLineEdit_->setEnabled(false);
-	ui.portLineEdit_->setEnabled(false);
-	ui.lineEdit->setEnabled(false);
-	ui.pushButton->setEnabled(false);
 
 	QString uuid = ui.lineEdit->text();
-	videoReceiver->startConnect(relayServer, static_cast<quint16>(relayPort), uuid);
+	m_videoReceiver->startConnect(relayServer, static_cast<quint16>(relayPort), uuid);
+}
+
+void DeskControler::destroyVideoSession()
+{
+	ui.pushButton->setEnabled(true);
+	ui.ipLineEdit_->setEnabled(true);
+	ui.portLineEdit_->setEnabled(true);
+	ui.lineEdit->setEnabled(true);
+
+	if (m_videoReceiver) {
+		m_videoReceiver->stopReceiving();
+		delete m_videoReceiver;
+		m_videoReceiver = nullptr;
+	}
+	if (m_networkManager) {
+		m_networkManager->cleanup();
+		delete m_networkManager;
+		m_networkManager = nullptr;
+	}
 }
 
 

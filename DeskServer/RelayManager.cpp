@@ -21,6 +21,7 @@ void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, co
 
     // Create TCP socket and establish connection.
     m_socket = new QTcpSocket(this);
+    m_socket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
     connect(m_socket, &QTcpSocket::connected, this, &RelayManager::onSocketConnected);
     connect(m_socket, &QTcpSocket::disconnected, this, &RelayManager::onSocketDisconnected);
     connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
@@ -64,6 +65,7 @@ void RelayManager::onSocketConnected()
     // Construct and send RequestRelay message.
     RequestRelay req;
     req.set_uuid(m_uuid.toStdString());
+    req.set_role(RequestRelay_DeskRole_DESK_SERVER);
     RendezvousMessage relayMsg;
     *relayMsg.mutable_request_relay() = req;
     std::string reqStr;
@@ -114,10 +116,10 @@ void RelayManager::onEncodedPacketReady(const QByteArray& packet)
 		m_socket->write(fullData);
 		m_socket->flush();
 
-		LogWidget::instance()->addLog(
-			QString("RelayManager: Forwarded encoded packet (size %1 + 4-byte header)").arg(packet.size()),
-			LogWidget::Info
-		);
+		//LogWidget::instance()->addLog(
+		//	QString("RelayManager: Forwarded encoded packet (size %1 + 4-byte header)").arg(packet.size()),
+		//	LogWidget::Info
+		//);
 	}
 	else {
 		LogWidget::instance()->addLog(

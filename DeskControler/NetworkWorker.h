@@ -15,6 +15,7 @@ public:
 public slots:
 	// 在工作线程里调用，连接到指定服务器并发送请求
 	void connectToServer(const QString& host, quint16 port, const QString& uuid);
+	void cleanup();
 
 signals:
 	// 当拆包出一帧 H264 数据后，发出信号给解码线程
@@ -30,12 +31,14 @@ private slots:
 	void onSocketDisconnected();
 
 private:
+	void sendRequestRelay();
+
+private:
 	QTcpSocket* m_socket = nullptr;
 	QByteArray m_buffer;
 	QString m_uuid;
 	QString m_host;
 	quint16 m_port;
-	void sendRequestRelay();
 };
 
 #endif // NETWORKWORKER_H
