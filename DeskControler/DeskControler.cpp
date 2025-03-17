@@ -200,6 +200,10 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 
 	m_videoReceiver = new VideoReceiver(this);
 
+
+	connect(videoWidget, &VideoWidget::mouseEventCaptured,
+		m_videoReceiver, &VideoReceiver::mouseEventCaptured);
+
 	connect(m_videoReceiver, &VideoReceiver::frameReady, this, [videoWidget, scrollArea](const QImage& img) {
 		static bool firstFrame = true;
 		if (firstFrame && !img.isNull())

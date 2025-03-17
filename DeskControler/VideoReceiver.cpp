@@ -84,3 +84,13 @@ void VideoReceiver::onNetworkError(const QString& err)
     LogWidget::instance()->addLog("Network error: " + err, LogWidget::Warning);
     emit networkError(err);
 }
+
+void VideoReceiver::mouseEventCaptured(int x, int y, int mask)
+{
+	QMetaObject::invokeMethod(m_netWorker,
+		"sendMouseEventToServer",
+		Qt::QueuedConnection,
+		Q_ARG(int, x),
+		Q_ARG(int, y),
+		Q_ARG(int, mask));
+}

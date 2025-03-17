@@ -7,6 +7,7 @@ RelayManager::RelayManager(QObject* parent)
       m_relayPort(0),
       m_encoder(nullptr)
 {
+	m_inputSimulator = new RemoteInputSimulator(this);
 }
 
 RelayManager::~RelayManager() {
@@ -19,11 +20,11 @@ void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, co
     m_relayPort = relayPort;
     m_uuid = uuid;
 
-    // Create TCP socket and establish connection.
     m_socket = new QTcpSocket(this);
     m_socket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
     connect(m_socket, &QTcpSocket::connected, this, &RelayManager::onSocketConnected);
     connect(m_socket, &QTcpSocket::disconnected, this, &RelayManager::onSocketDisconnected);
+	connect(m_socket, &QTcpSocket::readyRead, this, &RelayManager::onReadyRead);
     connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(onSocketError(QAbstractSocket::SocketError)));
 
@@ -33,7 +34,6 @@ void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, co
         LogWidget::Info);
     m_socket->connectToHost(m_relayAddress, m_relayPort);
 
-    // Create and start the screen capture and encoding.
     if (!m_encoder) {
         m_encoder = new ScreenCaptureEncoder(this);
         connect(m_encoder, &ScreenCaptureEncoder::encodedPacketReady, this, &RelayManager::onEncodedPacketReady);
@@ -57,12 +57,61 @@ void RelayManager::stop()
     }
 }
 
+void RelayManager::onReadyRead()
+{
+	m_buffer.append(m_socket->readAll());
+
+	while (m_buffer.size() >= 4) {
+		quint32 packetSize;
+		memcpy(&packetSize, m_buffer.constData(), 4);
+		packetSize = qFromBigEndian(packetSize);
+
+		if (m_buffer.size() < 4 + static_cast<int>(packetSize))
+			break;
+
+		QByteArray packetData = m_buffer.mid(4, packetSize);
+
+		m_buffer.remove(0, 4 + packetSize);
+
+		processReceivedData(packetData);
+	}
+}
+
+void RelayManager::processReceivedData(const QByteArray& packetData)
+{
+	RendezvousMessage msg;
+
+	if (!msg.ParseFromArray(packetData.constData(), packetData.size())) {
+		LogWidget::instance()->addLog("Failed to parse RendezvousMessage message from RelayManager", LogWidget::Warning);
+		return;
+	}
+
+	if (msg.has_inputcontrolevent()) {
+		const InputControlEvent& event = msg.inputcontrolevent();
+		if (event.has_mouse_event()) {
+			const MouseEvent& mouseEvent = event.mouse_event();
+			int x = mouseEvent.x();
+			int y = mouseEvent.y();
+			int mask = mouseEvent.mask();
+
+			LogWidget::instance()->addLog(
+				QString("MessageHandler: received MouseEvent x=%1 y=%2 mask=%3").arg(x).arg(y).arg(mask),
+				LogWidget::Info
+			);
+			m_inputSimulator->handleMouseEvent(x, y, mask);
+		}
+		else if (event.has_keyboard_event()) {
+			//todo
+		}
+	}
+}
+
+
 void RelayManager::onSocketConnected()
 {
 	LogWidget::instance()->addLog("RelayManager: Connected to relay server via TCP", LogWidget::Info);
 	emit connected();
 
-	// 构造并发送 RequestRelay 消息
 	RequestRelay req;
 	req.set_uuid(m_uuid.toStdString());
 	req.set_role(RequestRelay_DeskRole_DESK_SERVER);
@@ -93,7 +142,6 @@ void RelayManager::onSocketDisconnected()
 {
     LogWidget::instance()->addLog("RelayManager: TCP connection to relay server disconnected", LogWidget::Warning);
     emit disconnected();
-    // Stop screen capture and encoding on disconnection.
     if (m_encoder) {
         m_encoder->stopCapture();
         LogWidget::instance()->addLog("RelayManager: Stopped screen encoding due to connection loss", LogWidget::Warning);

@@ -73,6 +73,7 @@
     <ClCompile Include="PeerClient.cpp" />
     <ClCompile Include="RelayManager.cpp" />
     <ClCompile Include="RelayPeerClient.cpp" />
+    <ClCompile Include="RemoteInputSimulator.cpp" />
     <ClCompile Include="ScreenCaptureEncoder.cpp" />
     <QtRcc Include="DeskServer.qrc" />
     <QtUic Include="DeskServer.ui" />
@@ -95,6 +96,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="RelayManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="RemoteInputSimulator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

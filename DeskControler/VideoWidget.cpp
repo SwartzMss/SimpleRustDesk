@@ -1,10 +1,12 @@
 #include "VideoWidget.h"
 #include <QPainter>
+#include "LogWidget.h"
 
 VideoWidget::VideoWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
 	setWindowFlags(Qt::Window);
+	setMouseTracking(true);
 }
 
 void VideoWidget::setFrame(const QImage& image)
@@ -30,5 +32,45 @@ void VideoWidget::paintEvent(QPaintEvent* event)
 	}
 	else {
 		painter.fillRect(rect(), Qt::black);
+	}
+}
+
+
+void VideoWidget::mousePressEvent(QMouseEvent* event)
+{
+	int mask = 0;
+	if (event->button() == Qt::LeftButton)
+		mask = MouseLeftDown;
+	else if (event->button() == Qt::RightButton)
+		mask = MouseRightClick;
+	else if (event->button() == Qt::MiddleButton)
+		mask = MouseMiddleClick;
+
+	QPointF pos = event->position();
+	emit mouseEventCaptured(static_cast<int>(pos.x()), static_cast<int>(pos.y()), mask);
+}
+
+void VideoWidget::mouseReleaseEvent(QMouseEvent* event)
+{
+	int mask = 0;
+	if (event->button() == Qt::LeftButton)
+		mask = MouseLeftUp;
+
+	QPointF pos = event->position();
+	emit mouseEventCaptured(static_cast<int>(pos.x()), static_cast<int>(pos.y()), mask);
+}
+
+void VideoWidget::mouseDoubleClickEvent(QMouseEvent* event)
+{
+	int mask = MouseDoubleClick;
+	const QPointF pos = event->position();
+	emit mouseEventCaptured(static_cast<int>(pos.x()), static_cast<int>(pos.y()), mask);
+}
+
+void VideoWidget::mouseMoveEvent(QMouseEvent* event)
+{
+	if (event->buttons() & Qt::LeftButton) {
+		QPointF pos = event->position();
+		emit mouseEventCaptured(static_cast<int>(pos.x()), static_cast<int>(pos.y()), MouseMove);
 	}
 }

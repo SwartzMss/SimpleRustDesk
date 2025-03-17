@@ -8,6 +8,7 @@
 class NetworkWorker;
 class VideoDecoderWorker;
 
+
 class VideoReceiver : public QObject
 {
 	Q_OBJECT
@@ -24,6 +25,8 @@ signals:
 	void frameReady(const QImage& image);
 	// 可以把 NetworkWorker 的错误转发出去
 	void networkError(const QString& error);
+public slots:
+	void mouseEventCaptured(int x, int y, int mask);
 
 private slots:
 	// 当解码线程发出 frameDecoded 时调用
