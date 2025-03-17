@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QHostAddress>
+#include "RemoteInputSimulator.h"
 #include "rendezvous.pb.h"
 #include "ScreenCaptureEncoder.h"
 
@@ -23,6 +24,7 @@ signals:
     void disconnected();
 
 private slots:
+    void onReadyRead();
     void onSocketConnected();
     void onSocketDisconnected();
     void onSocketError(QAbstractSocket::SocketError error);
@@ -30,14 +32,18 @@ private slots:
     void onEncodedPacketReady(const QByteArray& packet);
 
 private:
+    void processReceivedData(const QByteArray& packetData);
+
+private:
     QTcpSocket* m_socket;
     QHostAddress m_relayAddress;
     quint16 m_relayPort;
     QString m_uuid;
     QString m_punchHoleId;
-
+    QByteArray m_buffer;
     // Screen capture and encoder instance managed internally.
     ScreenCaptureEncoder* m_encoder;
+	RemoteInputSimulator* m_inputSimulator;
 };
 
 #endif // RELAYMANAGER_H

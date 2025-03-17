@@ -17,6 +17,8 @@ public slots:
 	// 在工作线程里调用，连接到指定服务器并发送请求
 	void connectToServer(const QString& host, quint16 port, const QString& uuid);
 	void cleanup();
+	void sendMouseEventToServer(int x, int y, int mask);
+
 
 signals:
 	// 当拆包出一帧 H264 数据后，发出信号给解码线程
