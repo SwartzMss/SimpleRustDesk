@@ -18,6 +18,7 @@ public slots:
 	void connectToServer(const QString& host, quint16 port, const QString& uuid);
 	void cleanup();
 	void sendMouseEventToServer(int x, int y, int mask);
+	void sendKeyEventToServer(int key, bool pressed);
 
 
 signals:

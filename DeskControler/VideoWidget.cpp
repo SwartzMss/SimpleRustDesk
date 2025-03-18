@@ -1,11 +1,13 @@
 #include "VideoWidget.h"
 #include <QPainter>
+#include <QKeyEvent>
 #include "LogWidget.h"
 
 VideoWidget::VideoWidget(QWidget* parent)
 	: QOpenGLWidget(parent)
 {
 	setWindowFlags(Qt::Window);
+	setFocusPolicy(Qt::StrongFocus);
 	setMouseTracking(true);
 }
 
@@ -73,4 +75,19 @@ void VideoWidget::mouseMoveEvent(QMouseEvent* event)
 		QPointF pos = event->position();
 		emit mouseEventCaptured(static_cast<int>(pos.x()), static_cast<int>(pos.y()), MouseMove);
 	}
+}
+
+
+void VideoWidget::keyPressEvent(QKeyEvent* event)
+{
+	if (event->isAutoRepeat()) return;
+	LogWidget::instance()->addLog("keyPressEvent ", LogWidget::Warning);
+	emit keyEventCaptured(event->key(), true);
+}
+
+void VideoWidget::keyReleaseEvent(QKeyEvent* event)
+{
+	LogWidget::instance()->addLog("keyReleaseEvent ", LogWidget::Warning);
+	if (event->isAutoRepeat()) return;
+	emit keyEventCaptured(event->key(), false);
 }

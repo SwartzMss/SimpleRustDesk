@@ -4,6 +4,7 @@
 #include <QUrl>
 #include <QtNetwork/QHostInfo>
 #include <QtEndian>
+#include <QKeyEvent>
 
 NetworkWorker::NetworkWorker(QObject* parent)
 	: QObject(parent)
@@ -161,6 +162,48 @@ void NetworkWorker::sendMouseEventToServer(int x, int y, int mask)
 
 	InputControlEvent inputEvent;
 	*inputEvent.mutable_mouse_event() = mouseEvent;
+
+	RendezvousMessage msg;
+	*msg.mutable_inputcontrolevent() = inputEvent;
+
+	std::string serialized;
+	if (!msg.SerializeToString(&serialized)) {
+		LogWidget::instance()->addLog("Failed to serialize MouseEvent message", LogWidget::Error);
+		return;
+	}
+
+	QByteArray protobufData(serialized.data(), serialized.size());
+
+	// 计算长度头（大端序）
+	quint32 len = static_cast<quint32>(protobufData.size());
+	quint32 len_be = qToBigEndian(len); // 大端序转换
+
+	// 构造完整数据
+	QByteArray sendData;
+	sendData.append(reinterpret_cast<const char*>(&len_be), sizeof(len_be));
+	sendData.append(protobufData);
+
+	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
+		m_socket->write(sendData);
+		m_socket->flush();
+	}
+}
+
+void NetworkWorker::sendKeyEventToServer(int key, bool pressed)
+{
+	if (m_socket->state() != QAbstractSocket::ConnectedState) {
+		return;  // 如果没有连接上 RelayServer，就不发送
+	}
+
+	LogWidget::instance()->addLog("sendKeyEventToServer " + QString::number(key), LogWidget::Error);
+
+	// 组装 KeyboardEvent Protobuf 消息
+	KeyboardEvent keyboardEvent;
+	keyboardEvent.set_key(key);
+	keyboardEvent.set_pressed(pressed);
+
+	InputControlEvent inputEvent;
+	*inputEvent.mutable_keyboard_event() = keyboardEvent;
 
 	RendezvousMessage msg;
 	*msg.mutable_inputcontrolevent() = inputEvent;

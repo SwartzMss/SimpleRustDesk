@@ -27,6 +27,7 @@ signals:
 	void networkError(const QString& error);
 public slots:
 	void mouseEventCaptured(int x, int y, int mask);
+	void keyEventCaptured(int key, bool pressed);
 
 private slots:
 	// 当解码线程发出 frameDecoded 时调用

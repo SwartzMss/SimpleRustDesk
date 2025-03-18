@@ -10,4 +10,5 @@ public:
 	explicit RemoteInputSimulator(QObject* parent = nullptr);
 
 	void handleMouseEvent(int x, int y, int mask);
+	void handleKeyboardEvent(int key, bool pressed);
 };
