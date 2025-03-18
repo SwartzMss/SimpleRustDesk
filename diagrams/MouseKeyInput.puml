@@ -1,0 +1,26 @@
+@startuml
+title 远程桌面输入控制流程 (鼠标 + 键盘) - 基于 TCP 传输
+
+box "DeskControl (客户端)"
+    participant "VideoWidget (输入捕获)" as VideoWidget
+    participant "NetworkWorker (TCP 传输)" as NetworkWorker
+end box
+
+box "DeskServer (远程端)"
+    participant "RelayManager (消息接收)" as RelayManager
+    participant "RemoteInputSimulator (Windows API)" as RemoteInputSimulator
+end box
+
+== 捕获鼠标事件 ==
+VideoWidget -> VideoWidget : 用户点击/移动鼠标
+VideoWidget -> NetworkWorker : 生成 MouseEvent 并通过 TCP 发送
+NetworkWorker -> RelayManager : 传输 MouseEvent (TCP)
+RelayManager -> RemoteInputSimulator : 调用 Windows SendInput() 模拟鼠标
+
+== 捕获键盘事件 ==
+VideoWidget -> VideoWidget : 用户按下/释放按键
+VideoWidget -> NetworkWorker : 生成 KeyboardEvent 并通过 TCP 发送
+NetworkWorker -> RelayManager : 传输 KeyboardEvent (TCP)
+RelayManager -> RemoteInputSimulator : 调用 Windows SendInput() 模拟按键
+
+@enduml
