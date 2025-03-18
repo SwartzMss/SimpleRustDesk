@@ -21,6 +21,18 @@ RemoteInputSimulator::RemoteInputSimulator(QObject* parent)
 
 void RemoteInputSimulator::handleMouseEvent(int x, int y, int mask)
 {
+
+	HWND targetHwnd = GetForegroundWindow();
+	if (targetHwnd) {
+		// 尝试激活前台窗口
+		if (!SetForegroundWindow(targetHwnd)) {
+			LogWidget::instance()->addLog("Failed to set foreground window in handleMouseEvent", LogWidget::Warning);
+		}
+	}
+	else {
+		LogWidget::instance()->addLog("No foreground window found in handleMouseEvent", LogWidget::Warning);
+	}
+
 	POINT point = { x, y };
 
 	int screenX = (65535 * x) / GetSystemMetrics(SM_CXSCREEN);
@@ -175,6 +187,18 @@ WORD mapIntKeyToVK(int key)
 
 void RemoteInputSimulator::handleKeyboardEvent(int protoKey, bool pressed)
 {
+
+	HWND targetHwnd = GetForegroundWindow();
+	if (targetHwnd) {
+		// 尝试激活前台窗口
+		if (!SetForegroundWindow(targetHwnd)) {
+			LogWidget::instance()->addLog("Failed to set foreground window in handleMouseEvent", LogWidget::Warning);
+		}
+	}
+	else {
+		LogWidget::instance()->addLog("No foreground window found in handleMouseEvent", LogWidget::Warning);
+	}
+
 	// 将 protoKey 转换为 proto 枚举类型（ControlKey）
 	WORD vk = mapIntKeyToVK(protoKey);
 	if (vk == 0) {

@@ -34,11 +34,19 @@ void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, co
         LogWidget::Info);
     m_socket->connectToHost(m_relayAddress, m_relayPort);
 
-    if (!m_encoder) {
-        m_encoder = new ScreenCaptureEncoder(this);
-        connect(m_encoder, &ScreenCaptureEncoder::encodedPacketReady, this, &RelayManager::onEncodedPacketReady);
-    }
-    m_encoder->startCapture();
+
+	m_encoderThread = new QThread(this);
+	m_encoder = new ScreenCaptureEncoder(); // 现在不指定父对象
+	m_encoder->moveToThread(m_encoderThread);
+
+	// 当线程启动时，调用编码器的 startCapture 方法
+	connect(m_encoderThread, &QThread::started, m_encoder, &ScreenCaptureEncoder::startCapture);
+	// 接收编码后数据的信号，注意这里依然由 RelayManager 的槽处理（槽会在主线程中执行）
+	connect(m_encoder, &ScreenCaptureEncoder::encodedPacketReady, this, &RelayManager::onEncodedPacketReady);
+	// 线程结束时清理编码器
+	connect(m_encoderThread, &QThread::finished, m_encoder, &QObject::deleteLater);
+
+	m_encoderThread->start();
 }
 
 void RelayManager::stop()
@@ -49,12 +57,16 @@ void RelayManager::stop()
         m_socket->deleteLater();
         m_socket = nullptr;
     }
-    // Stop screen capture and encoding.
-    if (m_encoder) {
-        m_encoder->stopCapture();
-        m_encoder->deleteLater();
-        m_encoder = nullptr;
-    }
+	if (m_encoder) {
+		// 使用 Qt::BlockingQueuedConnection 确保 stopCapture 在编码线程中执行完成
+		QMetaObject::invokeMethod(m_encoder, "stopCapture", Qt::BlockingQueuedConnection);
+	}
+	if (m_encoderThread) {
+		m_encoderThread->quit();
+		m_encoderThread->wait();
+		m_encoderThread->deleteLater();
+		m_encoderThread = nullptr;
+	}
 }
 
 void RelayManager::onReadyRead()
@@ -94,10 +106,10 @@ void RelayManager::processReceivedData(const QByteArray& packetData)
 			int y = mouseEvent.y();
 			int mask = mouseEvent.mask();
 
-			LogWidget::instance()->addLog(
-				QString("MessageHandler: received MouseEvent x=%1 y=%2 mask=%3").arg(x).arg(y).arg(mask),
-				LogWidget::Info
-			);
+			//LogWidget::instance()->addLog(
+			//	QString("MessageHandler: received MouseEvent x=%1 y=%2 mask=%3").arg(x).arg(y).arg(mask),
+			//	LogWidget::Info
+			//);
 			m_inputSimulator->handleMouseEvent(x, y, mask);
 		}
 		else if (event.has_keyboard_event()) {
@@ -105,11 +117,11 @@ void RelayManager::processReceivedData(const QByteArray& packetData)
 			int key = keyboardEvent.key();  // 获取键值
 			bool pressed = keyboardEvent.pressed();  // 获取按键状态（按下 / 释放）
 
-			LogWidget::instance()->addLog(
-				QString("RelayManager: received KeyboardEvent key=%1 pressed=%2")
-				.arg(key).arg(pressed ? "true" : "false"),
-				LogWidget::Info
-			);
+			//LogWidget::instance()->addLog(
+			//	QString("RelayManager: received KeyboardEvent key=%1 pressed=%2")
+			//	.arg(key).arg(pressed ? "true" : "false"),
+			//	LogWidget::Info
+			//);
 
 			m_inputSimulator->handleKeyboardEvent(key, pressed);
 		}
