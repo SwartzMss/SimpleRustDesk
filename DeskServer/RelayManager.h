@@ -2,6 +2,7 @@
 #define RELAYMANAGER_H
 
 #include <QObject>
+#include <QThread>
 #include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QHostAddress>
 #include "RemoteInputSimulator.h"
@@ -44,6 +45,7 @@ private:
     // Screen capture and encoder instance managed internally.
     ScreenCaptureEncoder* m_encoder;
 	RemoteInputSimulator* m_inputSimulator;
+    QThread* m_encoderThread;
 };
 
 #endif // RELAYMANAGER_H
