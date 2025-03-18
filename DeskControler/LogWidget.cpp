@@ -1,30 +1,45 @@
 #include "LogWidget.h"
-#include <QCoreApplication>
+#include <QDebug>
 #include <QThread>
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QTextEdit>
+#include <QVBoxLayout>
+#include <QDateTime>
+#include <QTextStream>
 
-// 初始化静态成员变量
+// Initialize static member variable
 LogWidget* LogWidget::m_instance = nullptr;
 
 LogWidget::LogWidget()
 {
+	// Initialize the UI log display widget
 	logEdit = new QTextEdit(this);
 	logEdit->setReadOnly(true);
 	logEdit->setLineWrapMode(QTextEdit::NoWrap);
+
+	// Initialize log file in append mode using the executable's name as base
+	QString exeName = QFileInfo(QCoreApplication::applicationFilePath()).baseName();
+	QString logFileName = exeName + ".log";
+	m_logFile = new QFile(logFileName, this);
+	if (!m_logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+		qWarning() << "Failed to open log file!";
+	}
 }
 
 void LogWidget::init(QWidget* parent)
 {
 	if (parent) {
-		this->setParent(parent);  // 设置父窗口
+		this->setParent(parent);  // Set parent window
 
-		// 创建布局并设置边距和间距为 0
+		// Create layout with zero margins and spacing
 		QVBoxLayout* layout = new QVBoxLayout(this);
 		layout->addWidget(logEdit);
 		layout->setContentsMargins(0, 0, 0, 0);
 		layout->setSpacing(0);
 		setLayout(layout);
 
-		// 将 LogWidget 添加到父窗口的布局中
+		// Add LogWidget to the parent's layout
 		if (!parent->layout()) {
 			QVBoxLayout* parentLayout = new QVBoxLayout(parent);
 			parentLayout->setContentsMargins(0, 0, 0, 0);
@@ -37,6 +52,7 @@ void LogWidget::init(QWidget* parent)
 
 void LogWidget::addLog(const QString& logMessage, LogLevel level)
 {
+	// Set text color based on log level
 	QTextCharFormat format;
 	switch (level) {
 	case Info:
@@ -53,27 +69,29 @@ void LogWidget::addLog(const QString& logMessage, LogLevel level)
 		break;
 	}
 
-	// 1) 获取当前线程ID
-	// 判断是否是主线程：若当前线程等于 QApplication 主线程，则记为0，否则取真实ID
 	quintptr threadIdVal = 0;
 	if (QThread::currentThread() != QCoreApplication::instance()->thread()) {
 		threadIdVal = reinterpret_cast<quintptr>(QThread::currentThreadId());
 	}
-	// 将线程ID转换成字符串
 	QString threadIdStr = QString::number(threadIdVal);
 
-	// 2) 生成带时间戳、线程ID的日志行
 	QString timeStamp = QDateTime::currentDateTime().toString("hh:mm:ss");
-	// 使用占位符来对齐：timeStamp占 8 个字符宽度，threadIdStr占 5 个字符宽度
-	// (也可根据自己需求微调宽度)
+
 	QString fullMessage = QString("[%1] [TID:%2] %3")
-		.arg(timeStamp, -8)                // 左对齐，宽度8
-		.arg(threadIdStr, 5, QLatin1Char(' ')) // 右对齐，宽度5
+		.arg(timeStamp, -8)
+		.arg(threadIdStr, 5, QLatin1Char(' '))
 		.arg(logMessage);
 
-	// 3) 插入文本到 QTextEdit
+
 	QTextCursor cursor = logEdit->textCursor();
 	cursor.movePosition(QTextCursor::End);
 	cursor.insertText(fullMessage + "\n", format);
 	logEdit->setTextCursor(cursor);
+
+	// Also write the log message to the log file
+	if (m_logFile && m_logFile->isOpen()) {
+		QTextStream out(m_logFile);
+		out << fullMessage << "\n";
+		m_logFile->flush();  // Flush immediately to prevent log loss on crash
+	}
 }
