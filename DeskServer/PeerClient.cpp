@@ -9,7 +9,7 @@ PeerClient::PeerClient(const QString& uuid,QObject* parent)
 {
 	m_uuid = uuid;
 	m_reconnectTimer = new QTimer(this);
-	m_reconnectTimer->setInterval(3000);  // 每 3 秒重连一次
+	m_reconnectTimer->setInterval(3000);
 	m_reconnectTimer->setSingleShot(true);
 	connect(m_reconnectTimer, &QTimer::timeout, this, &PeerClient::attemptReconnect);
 }
