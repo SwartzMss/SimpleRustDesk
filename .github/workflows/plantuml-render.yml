@@ -5,6 +5,10 @@ on:
     paths:
       - 'diagrams/*.puml'
       - '.github/workflows/plantuml-render.yml'
+  pull_request:
+    paths:
+      - 'diagrams/*.puml'
+      - '.github/workflows/plantuml-render.yml'
 
 jobs:
   render:
