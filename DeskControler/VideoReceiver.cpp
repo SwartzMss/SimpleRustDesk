@@ -94,3 +94,12 @@ void VideoReceiver::mouseEventCaptured(int x, int y, int mask)
 		Q_ARG(int, y),
 		Q_ARG(int, mask));
 }
+
+void VideoReceiver::keyEventCaptured(int key, bool pressed)
+{
+	QMetaObject::invokeMethod(m_netWorker,
+		"sendKeyEventToServer",
+		Qt::QueuedConnection,
+		Q_ARG(int, key),
+		Q_ARG(bool, pressed));
+}

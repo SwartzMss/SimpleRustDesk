@@ -66,11 +66,11 @@ message MouseEvent {
   int32 mask = 1;
   sint32 x = 2;
   sint32 y = 3;
-  repeated ControlKey modifiers = 4;
+  repeated int32 modifiers = 4;
 }
 
 message KeyboardEvent {
-  ControlKey key = 2;
+  int32  key = 2;
   bool pressed = 3;
 }
 
@@ -89,40 +89,4 @@ message RendezvousMessage {
     InputControlEvent inputControlEvent = 10;
 
   }
-}
-
-enum ControlKey {
-  KEY_UNKNOWN = 0;
-  KEY_ALT = 1;
-  KEY_BACKSPACE = 2;
-  KEY_CAPSLOCK = 3;
-  KEY_CONTROL = 4;
-  KEY_DELETE = 5;
-  KEY_DOWN_ARROW = 6;
-  KEY_END = 7;
-  KEY_ESCAPE = 8;
-  KEY_F1 = 9;
-  KEY_F2 = 10;
-  KEY_F3 = 11;
-  KEY_F4 = 12;
-  KEY_F5 = 13;
-  KEY_F6 = 14;
-  KEY_F7 = 15;
-  KEY_F8 = 16;
-  KEY_F9 = 17;
-  KEY_F10 = 18;
-  KEY_F11 = 19;
-  KEY_F12 = 20;
-  KEY_HOME = 21;
-  KEY_LEFT_ARROW = 22;
-  KEY_META = 23;
-  KEY_PAGE_DOWN = 24;
-  KEY_PAGE_UP = 25;
-  KEY_RETURN = 26;
-  KEY_RIGHT_ARROW = 27;
-  KEY_SHIFT = 28;
-  KEY_SPACE = 29;
-  KEY_TAB = 30;
-  KEY_UP_ARROW = 31;
-  KEY_INSERT = 32;
 }

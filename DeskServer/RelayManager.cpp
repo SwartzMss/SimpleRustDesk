@@ -101,7 +101,17 @@ void RelayManager::processReceivedData(const QByteArray& packetData)
 			m_inputSimulator->handleMouseEvent(x, y, mask);
 		}
 		else if (event.has_keyboard_event()) {
-			//todo
+			const KeyboardEvent& keyboardEvent = event.keyboard_event();
+			int key = keyboardEvent.key();  // 获取键值
+			bool pressed = keyboardEvent.pressed();  // 获取按键状态（按下 / 释放）
+
+			LogWidget::instance()->addLog(
+				QString("RelayManager: received KeyboardEvent key=%1 pressed=%2")
+				.arg(key).arg(pressed ? "true" : "false"),
+				LogWidget::Info
+			);
+
+			m_inputSimulator->handleKeyboardEvent(key, pressed);
 		}
 	}
 }

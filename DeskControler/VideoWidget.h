@@ -4,6 +4,7 @@
 #include <QtOpenGLWidgets/QOpenGLWidget>
 #include <QImage>
 #include <QMouseEvent>
+#include <QKeyEvent>
 
 enum MouseMask {
 	MouseMove = 0x01, //  Û±Í“∆∂Ø
@@ -21,6 +22,7 @@ public:
 
 signals:
 	void mouseEventCaptured(int x, int y, int mask);
+	void keyEventCaptured(int key, bool pressed);
 
 public slots:
 	void setFrame(const QImage& image);
@@ -31,6 +33,10 @@ protected:
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event)	 override;
+
+	void keyPressEvent(QKeyEvent* event) override;
+	void keyReleaseEvent(QKeyEvent* event) override;
+
 
 private:
 	QImage currentFrame;
