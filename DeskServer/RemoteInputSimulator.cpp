@@ -2,6 +2,7 @@
 #include "LogWidget.h"
 #include <Windows.h>
 #include <QKeyEvent> 
+#include <QTimer>
 
 enum MouseMask {
 	MouseMove = 0x01, // 鼠标移动
@@ -13,18 +14,20 @@ enum MouseMask {
 };
 
 
-
 RemoteInputSimulator::RemoteInputSimulator(QObject* parent)
 	: QObject(parent)
 {
+	m_workerThread = new QThread;
+	this->moveToThread(m_workerThread);
+	connect(m_workerThread, &QThread::finished, this, &QObject::deleteLater);
+	m_workerThread->start();
 }
 
 void RemoteInputSimulator::handleMouseEvent(int x, int y, int mask)
 {
-
+	// 获取当前前台窗口，并尝试激活
 	HWND targetHwnd = GetForegroundWindow();
 	if (targetHwnd) {
-		// 尝试激活前台窗口
 		if (!SetForegroundWindow(targetHwnd)) {
 			LogWidget::instance()->addLog("Failed to set foreground window in handleMouseEvent", LogWidget::Warning);
 		}
@@ -33,20 +36,48 @@ void RemoteInputSimulator::handleMouseEvent(int x, int y, int mask)
 		LogWidget::instance()->addLog("No foreground window found in handleMouseEvent", LogWidget::Warning);
 	}
 
-	POINT point = { x, y };
-
+	// 计算屏幕归一化坐标（SendInput 要求 0～65535）
 	int screenX = (65535 * x) / GetSystemMetrics(SM_CXSCREEN);
 	int screenY = (65535 * y) / GetSystemMetrics(SM_CYSCREEN);
 
-	std::vector<INPUT> inputs;
-
+	// 定义鼠标移动事件
 	INPUT moveInput = {};
 	moveInput.type = INPUT_MOUSE;
 	moveInput.mi.dx = screenX;
 	moveInput.mi.dy = screenY;
 	moveInput.mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
 
-	inputs.push_back(moveInput);
+	// 如果需要双击，则采用 QTimer 延时处理避免阻塞
+	if (mask & MouseDoubleClick) {
+		// 构造一次左键点击（按下和释放）
+		INPUT leftDown = {};
+		leftDown.type = INPUT_MOUSE;
+		leftDown.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+		INPUT leftUp = {};
+		leftUp.type = INPUT_MOUSE;
+		leftUp.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
+		// 第一组事件：鼠标移动 + 左键点击
+		std::vector<INPUT> firstInputs;
+		firstInputs.push_back(moveInput);
+		firstInputs.push_back(leftDown);
+		firstInputs.push_back(leftUp);
+		SendInput(static_cast<UINT>(firstInputs.size()), firstInputs.data(), sizeof(INPUT));
+
+		// 延时 50 毫秒后再发送一次点击
+		QTimer::singleShot(50, [=]() {
+			std::vector<INPUT> secondInputs;
+			secondInputs.push_back(moveInput);
+			secondInputs.push_back(leftDown);
+			secondInputs.push_back(leftUp);
+			SendInput(static_cast<UINT>(secondInputs.size()), secondInputs.data(), sizeof(INPUT));
+			});
+		return;
+	}
+
+	// 构造其它鼠标事件
+	std::vector<INPUT> inputs;
+	inputs.push_back(moveInput);  // 始终发送鼠标移动事件
 
 	if (mask & MouseLeftDown) {
 		INPUT downInput = {};
@@ -54,47 +85,31 @@ void RemoteInputSimulator::handleMouseEvent(int x, int y, int mask)
 		downInput.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
 		inputs.push_back(downInput);
 	}
-
 	if (mask & MouseLeftUp) {
 		INPUT upInput = {};
 		upInput.type = INPUT_MOUSE;
 		upInput.mi.dwFlags = MOUSEEVENTF_LEFTUP;
 		inputs.push_back(upInput);
 	}
-
 	if (mask & MouseRightClick) {
-		INPUT downInput = {};
-		downInput.type = INPUT_MOUSE;
-		downInput.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
-
-		INPUT upInput = {};
-		upInput.type = INPUT_MOUSE;
-		upInput.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
-
-		inputs.push_back(downInput);
-		inputs.push_back(upInput);
+		INPUT rightDown = {};
+		rightDown.type = INPUT_MOUSE;
+		rightDown.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+		INPUT rightUp = {};
+		rightUp.type = INPUT_MOUSE;
+		rightUp.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+		inputs.push_back(rightDown);
+		inputs.push_back(rightUp);
 	}
-
 	if (mask & MouseMiddleClick) {
-		INPUT downInput = {};
-		downInput.type = INPUT_MOUSE;
-		downInput.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-
-		INPUT upInput = {};
-		upInput.type = INPUT_MOUSE;
-		upInput.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-
-		inputs.push_back(downInput);
-		inputs.push_back(upInput);
-	}
-
-	if (mask & MouseDoubleClick) {
-		for (int i = 0; i < 2; ++i) {
-			handleMouseEvent(x, y, MouseLeftDown);
-			Sleep(50);
-			handleMouseEvent(x, y, MouseLeftUp);
-		}
-		return;
+		INPUT middleDown = {};
+		middleDown.type = INPUT_MOUSE;
+		middleDown.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+		INPUT middleUp = {};
+		middleUp.type = INPUT_MOUSE;
+		middleUp.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+		inputs.push_back(middleDown);
+		inputs.push_back(middleUp);
 	}
 
 	if (!inputs.empty()) {
@@ -187,7 +202,6 @@ WORD mapIntKeyToVK(int key)
 
 void RemoteInputSimulator::handleKeyboardEvent(int protoKey, bool pressed)
 {
-
 	HWND targetHwnd = GetForegroundWindow();
 	if (targetHwnd) {
 		// 尝试激活前台窗口

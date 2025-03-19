@@ -50,9 +50,9 @@ void LogWidget::init(QWidget* parent)
 	}
 }
 
-void LogWidget::addLog(const QString& logMessage, LogLevel level)
+
+void LogWidget::appendLog(const QString& logMessage, LogLevel level, const QString& callerThreadId)
 {
-	// Set text color based on log level
 	QTextCharFormat format;
 	switch (level) {
 	case Info:
@@ -69,29 +69,33 @@ void LogWidget::addLog(const QString& logMessage, LogLevel level)
 		break;
 	}
 
-	quintptr threadIdVal = 0;
-	if (QThread::currentThread() != QCoreApplication::instance()->thread()) {
-		threadIdVal = reinterpret_cast<quintptr>(QThread::currentThreadId());
-	}
-	QString threadIdStr = QString::number(threadIdVal);
-
 	QString timeStamp = QDateTime::currentDateTime().toString("hh:mm:ss");
-
-	QString fullMessage = QString("[%1] [TID:%2] %3")
-		.arg(timeStamp, -8)   
-		.arg(threadIdStr, 5, QLatin1Char(' ')) 
+	QString fullMessage = QString("[%1] [TID:0x%2] %3")
+		.arg(timeStamp, 8)
+		.arg(callerThreadId)
 		.arg(logMessage);
-
 
 	QTextCursor cursor = logEdit->textCursor();
 	cursor.movePosition(QTextCursor::End);
 	cursor.insertText(fullMessage + "\n", format);
 	logEdit->setTextCursor(cursor);
 
-	// Also write the log message to the log file
 	if (m_logFile && m_logFile->isOpen()) {
 		QTextStream out(m_logFile);
 		out << fullMessage << "\n";
-		m_logFile->flush();  // Flush immediately to prevent log loss on crash
+		m_logFile->flush();
 	}
+}
+
+void LogWidget::addLog(const QString& logMessage, LogLevel level)
+{
+	QString callerThreadId = QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId()), 16);
+
+	if (QThread::currentThread() != this->thread()) {
+		QMetaObject::invokeMethod(this, [=]() {
+			this->appendLog(logMessage, level, callerThreadId);
+			}, Qt::QueuedConnection);
+		return;
+	}
+	appendLog(logMessage, level, "0");
 }
