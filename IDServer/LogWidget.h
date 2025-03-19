@@ -37,8 +37,8 @@ public:
 	// 初始化函数，设置父窗口
 	void init(QWidget* parent);
 
-	// 添加日志，显示到 UI 同时写入文件
-	void addLog(const QString& logMessage, LogLevel level = Info);
+	// 添加日志，建议标记为 Q_INVOKABLE 以支持跨线程调用
+	Q_INVOKABLE void addLog(const QString& logMessage, LogLevel level = Info);
 
 	// 禁用拷贝构造和赋值
 	LogWidget(const LogWidget&) = delete;
@@ -53,6 +53,9 @@ private:
 			m_logFile->close();
 		}
 	}
+
+	// 实际更新日志的内部函数
+	void appendLog(const QString& logMessage, LogLevel level, const QString& callerThreadId);
 
 	// 单例实例
 	static LogWidget* m_instance;
