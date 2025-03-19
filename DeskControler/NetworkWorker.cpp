@@ -154,7 +154,6 @@ void NetworkWorker::onSocketReadyRead()
 
 void NetworkWorker::sendMouseEventToServer(int x, int y, int mask)
 {
-	LogWidget::instance()->addLog("sendMouseEventToServer", LogWidget::Error);
 	MouseEvent mouseEvent;
 	mouseEvent.set_x(x);
 	mouseEvent.set_y(y);
@@ -194,8 +193,6 @@ void NetworkWorker::sendKeyEventToServer(int key, bool pressed)
 	if (m_socket->state() != QAbstractSocket::ConnectedState) {
 		return;  // 如果没有连接上 RelayServer，就不发送
 	}
-
-	LogWidget::instance()->addLog("sendKeyEventToServer " + QString::number(key), LogWidget::Error);
 
 	// 组装 KeyboardEvent Protobuf 消息
 	KeyboardEvent keyboardEvent;

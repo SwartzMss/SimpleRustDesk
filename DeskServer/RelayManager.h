@@ -3,49 +3,47 @@
 
 #include <QObject>
 #include <QThread>
-#include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QHostAddress>
 #include "RemoteInputSimulator.h"
-#include "rendezvous.pb.h"
 #include "ScreenCaptureEncoder.h"
+#include "RelaySocketWorker.h"
 
 class RelayManager : public QObject {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    explicit RelayManager(QObject* parent = nullptr);
-    ~RelayManager();
+	explicit RelayManager(QObject* parent = nullptr);
+	~RelayManager();
 
-    void start(const QHostAddress& relayAddress, quint16 relayPort, const QString& uuid);
-    // Stop TCP connection and stop capture/encoding.
-    void stop();
+	void start(const QHostAddress& relayAddress, quint16 relayPort, const QString& uuid);
+	// 停止 TCP 连接及捕获/编码。
+	void stop();
 
 signals:
-    void errorOccurred(const QString& errorString);
-    void connected();
-    void disconnected();
+	void errorOccurred(const QString& errorString);
+	void connected();
+	void disconnected();
 
 private slots:
-    void onReadyRead();
-    void onSocketConnected();
-    void onSocketDisconnected();
-    void onSocketError(QAbstractSocket::SocketError error);
-    // Receive encoded data from ScreenCaptureEncoder and forward it.
-    void onEncodedPacketReady(const QByteArray& packet);
+	void onWorkerSocketConnected();
+	void onWorkerSocketDisconnected();
+	void onWorkerDataReceived(const QByteArray& data);
+	void onWorkerSocketError(const QString& errMsg);
+	void onEncodedPacketReady(const QByteArray& packet);
 
 private:
-    void processReceivedData(const QByteArray& packetData);
+	void processReceivedData(const QByteArray& packetData);
 
 private:
-    QTcpSocket* m_socket;
-    QHostAddress m_relayAddress;
-    quint16 m_relayPort;
-    QString m_uuid;
-    QString m_punchHoleId;
-    QByteArray m_buffer;
-    // Screen capture and encoder instance managed internally.
-    ScreenCaptureEncoder* m_encoder;
+	RelaySocketWorker* m_socketWorker;
+	QThread* m_socketThread;
+	QHostAddress m_relayAddress;
+	quint16 m_relayPort;
+	QString m_uuid;
+	QByteArray m_buffer;
+
+	ScreenCaptureEncoder* m_encoder;
 	RemoteInputSimulator* m_inputSimulator;
-    QThread* m_encoderThread;
+	QThread* m_encoderThread;
 };
 
 #endif // RELAYMANAGER_H
