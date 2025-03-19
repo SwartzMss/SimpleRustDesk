@@ -1,0 +1,120 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # 当推送以 v 开头的 tag 时触发
+
+env:
+  SOLUTION_FILE_PATH: SimpleRustDesk.sln
+
+permissions:
+  contents: read
+  # Release 相关操作需要写权限
+  issues: write
+  pull-requests: write
+
+jobs:
+  build_and_release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install aqt
+        run: pip install aqtinstall
+
+      - name: Install Qt6
+        run: |
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m all --outputdir "C:\Qt"
+          echo "Qt6_DIR=C:\\Qt\\6.8.2\\msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Prepare QtMsBuild folder
+        run: |
+          New-Item -ItemType Directory -Path "$Env:LOCALAPPDATA\QtMsBuild" -Force | Out-Null
+          Copy-Item -Path "$Env:GITHUB_WORKSPACE\QtMsBuild\*" `
+                    -Destination "$Env:LOCALAPPDATA\QtMsBuild\" `
+                    -Recurse -Force
+          echo "QtMsBuild=$Env:LOCALAPPDATA\QtMsBuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Check qmake
+        run: dir C:\Qt\6.8.2\msvc2022_64\bin
+
+      - name: Setup MSBuild (VS2022)
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Build Solution
+        run: msbuild SimpleRustDesk.sln /m /p:Configuration=Release /p:Platform=x64 /p:QtInstallation="Qt_6_8_2" /p:QtInstallDir="C:\Qt\6.8.2\msvc2022_64"
+
+      # 以下为打包步骤，将各个包的 exe 与依赖直接复制到同一目录，并生成各自的 zip 文件
+      - name: Create IDServer Zip
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path packages\IDServerPackage
+          Copy-Item SimpleRustDesk\x64\Release\IDServer.exe -Destination packages\IDServerPackage\
+          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\IDServerPackage
+          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\IDServerPackage
+          Copy-Item -Recurse SimpleRustDesk\Depend\sqlite3\lib\*.dll -Destination packages\IDServerPackage
+          Compress-Archive -Path packages\IDServerPackage\* -DestinationPath packages\IDServer.zip
+
+      - name: Create RelayServer Zip
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path packages\RelayServerPackage
+          Copy-Item SimpleRustDesk\x64\Release\RelayServer.exe -Destination packages\RelayServerPackage\
+          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\RelayServerPackage
+          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\RelayServerPackage
+          Compress-Archive -Path packages\RelayServerPackage\* -DestinationPath packages\RelayServer.zip
+
+      - name: Create DeskControl Zip
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path packages\DeskControl
+          Copy-Item SimpleRustDesk\x64\Release\DeskControl.exe -Destination packages\DeskControl\
+          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\DeskControl
+          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\DeskControl
+          Copy-Item -Recurse SimpleRustDesk\Depend\ffmpeg\lib\*.dll -Destination packages\DeskControl
+          Compress-Archive -Path packages\DeskControl\* -DestinationPath packages\DeskControl.zip
+
+      - name: Create DeskServer Zip
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path packages\DeskServer
+          Copy-Item SimpleRustDesk\x64\Release\DeskServer.exe -Destination packages\DeskServer\
+          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\DeskServer
+          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\DeskServer
+          Copy-Item -Recurse SimpleRustDesk\Depend\ffmpeg\lib\*.dll -Destination packages\DeskServer
+          Compress-Archive -Path packages\DeskServer\* -DestinationPath packages\DeskServer.zip
+
+      - name: Create Final Package Zip
+        shell: powershell
+        run: |
+          Compress-Archive -Path packages\IDServer.zip,packages\RelayServer.zip,packages\DeskControl.zip,packages\DeskServer.zip -DestinationPath packages\FinalPackage.zip
+
+      # 创建 GitHub Release，并上传最终的打包文件
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: packages\FinalPackage.zip
+          asset_name: FinalPackage.zip
+          asset_content_type: application/zip
