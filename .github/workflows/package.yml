@@ -56,40 +56,40 @@ jobs:
       - name: Create IDServer Zip
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path packages\IDServerPackage
-          Copy-Item SimpleRustDesk\x64\Release\IDServer.exe -Destination packages\IDServerPackage\
-          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\IDServerPackage
-          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\IDServerPackage
-          Copy-Item -Recurse SimpleRustDesk\Depend\sqlite3\lib\*.dll -Destination packages\IDServerPackage
-          Compress-Archive -Path packages\IDServerPackage\* -DestinationPath packages\IDServer.zip
+          New-Item -ItemType Directory -Force -Path packages\IDServer
+          Copy-Item x64\Release\IDServer.exe -Destination packages\IDServer\
+          Copy-Item -Recurse Depend\QtDll\* -Destination packages\IDServer\
+          Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\IDServer\
+          Copy-Item -Recurse Depend\sqlite3\lib\*.dll -Destination packages\IDServer\
+          Compress-Archive -Path packages\IDServer\* -DestinationPath packages\IDServer.zip
 
       - name: Create RelayServer Zip
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path packages\RelayServerPackage
-          Copy-Item SimpleRustDesk\x64\Release\RelayServer.exe -Destination packages\RelayServerPackage\
-          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\RelayServerPackage
-          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\RelayServerPackage
-          Compress-Archive -Path packages\RelayServerPackage\* -DestinationPath packages\RelayServer.zip
+          New-Item -ItemType Directory -Force -Path packages\RelayServer
+          Copy-Item x64\Release\RelayServer.exe -Destination packages\RelayServer\
+          Copy-Item -Recurse Depend\QtDll\* -Destination packages\RelayServer\
+          Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\RelayServer\
+          Compress-Archive -Path packages\RelayServer\* -DestinationPath packages\RelayServer.zip
 
       - name: Create DeskControl Zip
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path packages\DeskControl
-          Copy-Item SimpleRustDesk\x64\Release\DeskControl.exe -Destination packages\DeskControl\
-          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\DeskControl
-          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\DeskControl
-          Copy-Item -Recurse SimpleRustDesk\Depend\ffmpeg\lib\*.dll -Destination packages\DeskControl
+          Copy-Item x64\Release\DeskControl.exe -Destination packages\DeskControl\
+          Copy-Item -Recurse Depend\QtDll\* -Destination packages\DeskControl
+          Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\DeskControl
+          Copy-Item -Recurse Depend\ffmpeg\lib\*.dll -Destination packages\DeskControl
           Compress-Archive -Path packages\DeskControl\* -DestinationPath packages\DeskControl.zip
 
       - name: Create DeskServer Zip
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path packages\DeskServer
-          Copy-Item SimpleRustDesk\x64\Release\DeskServer.exe -Destination packages\DeskServer\
-          Copy-Item -Recurse SimpleRustDesk\Depend\QtDll\* -Destination packages\DeskServer
-          Copy-Item -Recurse E:\SimpleRustDesk\Depend\protobuf\lib\*.dll -Destination packages\DeskServer
-          Copy-Item -Recurse SimpleRustDesk\Depend\ffmpeg\lib\*.dll -Destination packages\DeskServer
+          Copy-Item x64\Release\DeskServer.exe -Destination packages\DeskServer\
+          Copy-Item -Recurse Depend\QtDll\* -Destination packages\DeskServer
+          Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\DeskServer
+          Copy-Item -Recurse Depend\ffmpeg\lib\*.dll -Destination packages\DeskServer
           Compress-Archive -Path packages\DeskServer\* -DestinationPath packages\DeskServer.zip
 
       - name: Create Final Package Zip
