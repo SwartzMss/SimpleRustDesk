@@ -20,6 +20,7 @@ void VideoWidget::setFrame(const QImage& image)
 		setMinimumSize(currentFrame.size());
 		resize(currentFrame.size());
 		m_firstFrame = false;
+
 	}
 
 	update();

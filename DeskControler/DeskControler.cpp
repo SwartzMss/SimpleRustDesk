@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QFile>
 #include "VideoWidget.h"
+#include "RemoteClipboard.h"
 #include "LogWidget.h"
 
 DeskControler::DeskControler(QWidget* parent)
@@ -200,6 +201,11 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 
 	m_videoReceiver = new VideoReceiver(this);
 
+
+	RemoteClipboard* remoteClipboard = new RemoteClipboard(this);
+
+	connect(remoteClipboard, &RemoteClipboard::clipboardDataReady,
+		m_videoReceiver, &VideoReceiver::clipboardDataCaptured);
 
 	connect(videoWidget, &VideoWidget::mouseEventCaptured,
 		m_videoReceiver, &VideoReceiver::mouseEventCaptured);
