@@ -96,6 +96,11 @@ jobs:
         run: |
           Compress-Archive -Path packages\IDServer.zip,packages\RelayServer.zip,packages\DeskControler.zip,packages\DeskServer.zip -DestinationPath packages\FinalPackage.zip
 
+      - name: List packages directory
+        shell: powershell
+        run: |
+          Get-ChildItem -Path packages -Recurse
+
       # 以下步骤获取已存在的 Release 的 upload_url，并上传打包好的压缩包作为新资产
       - name: Get existing Release upload URL
         id: get_release
