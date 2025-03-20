@@ -9,8 +9,7 @@ env:
   SOLUTION_FILE_PATH: SimpleRustDesk.sln
 
 permissions:
-  contents: read
-  # Release 相关操作需要写权限
+  contents: write
   issues: write
   pull-requests: write
 
