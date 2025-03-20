@@ -6,6 +6,7 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 
+
 enum MouseMask {
 	MouseMove = 0x01, // 鼠标移动
 	MouseLeftDown = 0x02, // 鼠标左键按下

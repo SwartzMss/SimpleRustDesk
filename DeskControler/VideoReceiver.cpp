@@ -103,3 +103,11 @@ void VideoReceiver::keyEventCaptured(int key, bool pressed)
 		Q_ARG(int, key),
 		Q_ARG(bool, pressed));
 }
+
+void VideoReceiver::clipboardDataCaptured(const ClipboardEvent& clipboardEvent)
+{
+	QMetaObject::invokeMethod(m_netWorker,
+		"sendClipboardEventToServer",
+		Qt::QueuedConnection,
+		Q_ARG(ClipboardEvent, clipboardEvent));
+}

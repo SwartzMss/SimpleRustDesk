@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QThread>
 #include <QImage>
+#include "rendezvous.pb.h"
 
 class NetworkWorker;
 class VideoDecoderWorker;
@@ -28,6 +29,7 @@ signals:
 public slots:
 	void mouseEventCaptured(int x, int y, int mask);
 	void keyEventCaptured(int key, bool pressed);
+	void clipboardDataCaptured(const ClipboardEvent& clipboardEvent);
 
 private slots:
 	// 当解码线程发出 frameDecoded 时调用

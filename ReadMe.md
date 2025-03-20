@@ -28,13 +28,13 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 
 ![鼠标键盘控制 UML](diagrams/output/MouseKeyInput.svg)
 
-## 文件传输-从控制端复制示意图 (ctrlcFromControl.puml)
+## 文件传输-从控制端复制 UML 图
 
-![ctrlcFromControl](./diagrams/ctrlcFromControl.png)
+![ctrlcFromControl](./diagrams/output/ctrlcFromControl.png)
 
-## 文件传输-从被控制端复制示意图 (ctrlcFromServer.puml)
+## 文件传输-从被控制端复制 UML 图
 
-![ctrlcFromServer](./diagrams/ctrlcFromServer.png)
+![ctrlcFromServer](./diagrams/output/ctrlcFromServer.png)
 
 
 ## 注意事项

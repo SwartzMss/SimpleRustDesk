@@ -228,6 +228,40 @@ void NetworkWorker::sendKeyEventToServer(int key, bool pressed)
 	}
 }
 
+void NetworkWorker::sendClipboardEventToServer(const ClipboardEvent& clipboardEvent)
+{
+	if (m_socket->state() != QAbstractSocket::ConnectedState) {
+		return;  // 如果没有连接上 RelayServer，就不发送
+	}
+
+	// 组装 ClipboardEvent 消息到 RendezvousMessage 中
+	RendezvousMessage msg;
+	*msg.mutable_clipboardevent() = clipboardEvent;
+
+	std::string serialized;
+	if (!msg.SerializeToString(&serialized)) {
+		LogWidget::instance()->addLog("Failed to serialize ClipboardEvent message", LogWidget::Error);
+		return;
+	}
+
+	QByteArray protobufData(serialized.data(), serialized.size());
+
+	// 计算长度头（大端序）
+	quint32 len = static_cast<quint32>(protobufData.size());
+	quint32 len_be = qToBigEndian(len); // 大端序转换
+
+	// 构造完整数据
+	QByteArray sendData;
+	sendData.append(reinterpret_cast<const char*>(&len_be), sizeof(len_be));
+	sendData.append(protobufData);
+
+	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
+		m_socket->write(sendData);
+		m_socket->flush();
+	}
+}
+
+
 
 void NetworkWorker::onSocketError(QAbstractSocket::SocketError socketError)
 {

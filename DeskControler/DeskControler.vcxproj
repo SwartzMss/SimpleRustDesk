@@ -73,6 +73,7 @@
     <ClCompile Include="MessageHandler.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
     <ClCompile Include="NetworkWorker.cpp" />
+    <ClCompile Include="RemoteClipboard.cpp" />
     <ClCompile Include="VideoDecoderWorker.cpp" />
     <ClCompile Include="VideoReceiver.cpp" />
     <ClCompile Include="VideoWidget.cpp" />
@@ -103,6 +104,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="NetworkWorker.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="RemoteClipboard.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
