@@ -98,16 +98,16 @@ jobs:
           Compress-Archive -Path packages\IDServer.zip,packages\RelayServer.zip,packages\DeskControler.zip,packages\DeskServer.zip -DestinationPath packages\FinalPackage.zip
 
       # 创建 GitHub Release，并上传最终的打包文件
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: 'Release ${{ github.ref_name }}'
-        draft: false
-        prerelease: false
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: 'Release ${{ github.ref_name }}'
+          draft: false
+          prerelease: false
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
