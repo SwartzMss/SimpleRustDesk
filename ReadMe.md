@@ -30,11 +30,11 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 
 ## 文件传输-从控制端复制 UML 图
 
-![ctrlcFromControl](./diagrams/output/ctrlcFromControl.png)
+![ctrlcFromControl](./diagrams/output/ctrlcFromControl.svg)
 
 ## 文件传输-从被控制端复制 UML 图
 
-![ctrlcFromServer](./diagrams/output/ctrlcFromServer.png)
+![ctrlcFromServer](./diagrams/output/ctrlcFromServer.svg)
 
 
 ## 注意事项
