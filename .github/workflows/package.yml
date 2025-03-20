@@ -72,15 +72,15 @@ jobs:
           Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\RelayServer\
           Compress-Archive -Path packages\RelayServer\* -DestinationPath packages\RelayServer.zip
 
-      - name: Create DeskControl Zip
+      - name: Create DeskControler Zip
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path packages\DeskControl
-          Copy-Item x64\Release\DeskControl.exe -Destination packages\DeskControl\
-          Copy-Item -Recurse Depend\QtDll\* -Destination packages\DeskControl
-          Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\DeskControl
-          Copy-Item -Recurse Depend\ffmpeg\lib\*.dll -Destination packages\DeskControl
-          Compress-Archive -Path packages\DeskControl\* -DestinationPath packages\DeskControl.zip
+          New-Item -ItemType Directory -Force -Path packages\DeskControler
+          Copy-Item x64\Release\DeskControler.exe -Destination packages\DeskControler\
+          Copy-Item -Recurse Depend\QtDll\* -Destination packages\DeskControler
+          Copy-Item -Recurse Depend\protobuf\lib\*.dll -Destination packages\DeskControler
+          Copy-Item -Recurse Depend\ffmpeg\lib\*.dll -Destination packages\DeskControler
+          Compress-Archive -Path packages\DeskControler\* -DestinationPath packages\DeskControler.zip
 
       - name: Create DeskServer Zip
         shell: powershell
@@ -95,7 +95,7 @@ jobs:
       - name: Create Final Package Zip
         shell: powershell
         run: |
-          Compress-Archive -Path packages\IDServer.zip,packages\RelayServer.zip,packages\DeskControl.zip,packages\DeskServer.zip -DestinationPath packages\FinalPackage.zip
+          Compress-Archive -Path packages\IDServer.zip,packages\RelayServer.zip,packages\DeskControler.zip,packages\DeskServer.zip -DestinationPath packages\FinalPackage.zip
 
       # 创建 GitHub Release，并上传最终的打包文件
       - name: Create GitHub Release
