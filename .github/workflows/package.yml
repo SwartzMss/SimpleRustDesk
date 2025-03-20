@@ -102,13 +102,19 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: context.ref_name
-            });
-            return release.data.upload_url;
-      
+            core.info(`Using tag: ${context.ref_name}`);
+            try {
+              const release = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: context.ref_name
+              });
+              core.info(`Found release with upload_url: ${release.data.upload_url}`);
+              return release.data.upload_url;
+            } catch (error) {
+              core.setFailed(`No release found for tag ${context.ref_name}: ${error}`);
+            }
+
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
