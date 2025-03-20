@@ -2,7 +2,6 @@
 
 [![CI Build](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/msbuild.yml/badge.svg)](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/msbuild.yml)
 [![Render PlantUML Diagrams](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/plantuml-render.yml/badge.svg)](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/plantuml-render.yml)
-[![Package Status](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/package.yml/badge.svg)](https://github.com/SwartzMss/SimpleRustDesk/actions/workflows/package.yml)
 
 
 SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk 的设计思想，展示了如何构建一个完整的远程控制框架。系统通过信令交互和数据中继，实现被控端与控制端之间的远程连接与数据传输，主要包含以下模块：
@@ -28,6 +27,15 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 ## 鼠标键盘控制 UML 图
 
 ![鼠标键盘控制 UML](diagrams/output/MouseKeyInput.svg)
+
+## 文件传输-从控制端复制示意图 (ctrlcFromControl.puml)
+
+![ctrlcFromControl](./diagrams/ctrlcFromControl.png)
+
+## 文件传输-从被控制端复制示意图 (ctrlcFromServer.puml)
+
+![ctrlcFromServer](./diagrams/ctrlcFromServer.png)
+
 
 ## 注意事项
 

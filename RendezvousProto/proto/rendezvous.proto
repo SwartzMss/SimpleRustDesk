@@ -56,6 +56,22 @@ message InputControlEvent {
   }
 }
 
+message ClipboardEvent {
+  oneof event {
+    TextContent text = 1;
+    FileContent file = 2;
+  }
+}
+
+message TextContent {
+  string text_data = 1;
+}
+
+message FileContent {
+  bytes file_data = 1;
+  string file_name = 2;
+}
+
 
 message InpuVideoFrame{
   bytes data = 1;
@@ -87,6 +103,7 @@ message RendezvousMessage {
     PunchHoleSent punch_hole_sent = 8;
     InpuVideoFrame inpuVideoFrame = 9;
     InputControlEvent inputControlEvent = 10;
+    ClipboardEvent clipboardEvent =11;
 
   }
 }
