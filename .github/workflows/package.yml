@@ -114,10 +114,14 @@ jobs:
               repo: context.repo.repo,
               tag: tag
             });
-            // release.data.upload_url 可能包含模板部分 { ?name,label }
             let uploadUrl = release.data.upload_url;
+            // 去掉模板部分 { ?name,label }
             if (uploadUrl.includes("{")) {
               uploadUrl = uploadUrl.split("{")[0];
+            }
+            // 去除多余的引号（如果有）
+            if (uploadUrl.startsWith('"') && uploadUrl.endsWith('"')) {
+              uploadUrl = uploadUrl.slice(1, -1);
             }
             core.info(`Found release with upload_url: ${uploadUrl}`);
             return uploadUrl;
