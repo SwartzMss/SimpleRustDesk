@@ -1,0 +1,27 @@
+@startuml
+actor "控制端用户" as UserC
+actor "被控制的DeskServer用户" as UserS
+
+participant "RemoteClipboard (DeskControl)" as RC_C
+participant "RelayManager (DeskControl)" as RM_C
+participant "RelayServer" as Network
+participant "NetworkWorker (DeskServer)" as NW_S
+participant "RemoteClipboard (DeskServer)" as RC_S
+participant "系统" as System
+
+== 控制端发送剪贴板数据 ==
+UserC -> RC_C: 按 Ctrl+C
+RC_C-> RC_C: eventFilter() 捕获 Ctrl+C
+RC_C -> RC_C: 读取本地剪贴板数据
+RC_C -> RM_C: sendClipboardMessage(ClipboardEvent)
+RM_C -> Network: 传输 ClipboardEvent
+
+== 被控制端接收剪贴板数据 ==
+Network -> NW_S: 转发 ClipboardEvent
+NW_S -> RC_S: 发射 clipboardMessageReceived(ClipboardEvent)
+RC_S -> RC_S: receiveClipboardData(ClipboardEvent)\n更新系统剪贴板数据
+
+== 被控制端粘贴操作 ==
+UserS -> RC_S: 按 Ctrl+V
+RC_S -> System: 粘贴更新后的剪贴板数据
+@enduml
