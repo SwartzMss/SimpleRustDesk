@@ -107,7 +107,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            // 从 context.ref 中提取 tag 名（例如 "refs/tags/v1.0.0" -> "v1.0.0"）
             const tag = context.ref.startsWith("refs/tags/") ? context.ref.substring("refs/tags/".length) : context.ref;
             core.info(`Using tag: ${tag}`);
             const release = await github.rest.repos.getReleaseByTag({
@@ -115,8 +114,13 @@ jobs:
               repo: context.repo.repo,
               tag: tag
             });
-            core.info(`Found release with upload_url: ${release.data.upload_url}`);
-            return release.data.upload_url;
+            // release.data.upload_url 可能包含模板部分 { ?name,label }
+            let uploadUrl = release.data.upload_url;
+            if (uploadUrl.includes("{")) {
+              uploadUrl = uploadUrl.split("{")[0];
+            }
+            core.info(`Found release with upload_url: ${uploadUrl}`);
+            return uploadUrl;
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
