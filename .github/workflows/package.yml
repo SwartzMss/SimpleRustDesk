@@ -126,19 +126,6 @@ jobs:
             core.info(`Found release with upload_url: ${uploadUrl}`);
             return uploadUrl;
 
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: 'Release ${{ github.ref_name }}'
-          draft: false
-          prerelease: false
-
-
       - name: Debug GITHUB_TOKEN
         shell: powershell
         run: |
