@@ -4,6 +4,7 @@
 #include "NetworkManager.h"
 #include "VideoReceiver.h"
 #include "ui_DeskControler.h"
+#include "RemoteClipboard.h"
 
 class NetworkManager;
 
@@ -31,4 +32,5 @@ private:
 	Ui::DeskControlerClass ui;
 	NetworkManager* m_networkManager;
 	VideoReceiver* m_videoReceiver;
+	RemoteClipboard* m_remoteClipboard = nullptr;
 };

@@ -4,7 +4,6 @@
 #include <QJsonObject>
 #include <QFile>
 #include "VideoWidget.h"
-#include "RemoteClipboard.h"
 #include "LogWidget.h"
 
 DeskControler::DeskControler(QWidget* parent)
@@ -201,10 +200,16 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 
 	m_videoReceiver = new VideoReceiver(this);
 
+	m_remoteClipboard = new RemoteClipboard(this);
+	m_remoteClipboard->setRemoteWindow(scrollArea);
 
-	RemoteClipboard* remoteClipboard = new RemoteClipboard(this);
-
-	connect(remoteClipboard, &RemoteClipboard::clipboardDataReady,
+	if (m_remoteClipboard->start()) {
+		LogWidget::instance()->addLog("Global keyboard hook installed", LogWidget::Info);
+	}
+	else {
+		LogWidget::instance()->addLog("Failed to install global keyboard hook", LogWidget::Error);
+	}
+	connect(m_remoteClipboard, &RemoteClipboard::ctrlCPressed,
 		m_videoReceiver, &VideoReceiver::clipboardDataCaptured);
 
 	connect(videoWidget, &VideoWidget::mouseEventCaptured,
@@ -231,6 +236,12 @@ void DeskControler::setupVideoSession(const QString& relayServer, quint16 relayP
 
 void DeskControler::destroyVideoSession()
 {
+	if (m_remoteClipboard) {
+		m_remoteClipboard->stop();
+		delete m_remoteClipboard;
+		m_remoteClipboard = nullptr;
+	}
+
 	ui.pushButton->setEnabled(true);
 	ui.ipLineEdit_->setEnabled(true);
 	ui.portLineEdit_->setEnabled(true);
