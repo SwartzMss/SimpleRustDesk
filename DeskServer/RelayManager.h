@@ -7,6 +7,7 @@
 #include "RemoteInputSimulator.h"
 #include "ScreenCaptureEncoder.h"
 #include "RelaySocketWorker.h"
+#include "RemoteClipboard.h"
 
 class RelayManager : public QObject {
 	Q_OBJECT
@@ -44,6 +45,7 @@ private:
 	ScreenCaptureEncoder* m_encoder;
 	RemoteInputSimulator* m_inputSimulator;
 	QThread* m_encoderThread;
+	RemoteClipboard* m_remoteClipboard;
 };
 
 #endif // RELAYMANAGER_H

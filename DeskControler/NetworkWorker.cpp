@@ -255,6 +255,7 @@ void NetworkWorker::sendClipboardEventToServer(const ClipboardEvent& clipboardEv
 	sendData.append(reinterpret_cast<const char*>(&len_be), sizeof(len_be));
 	sendData.append(protobufData);
 
+	LogWidget::instance()->addLog("sendClipboardEventToServer", LogWidget::Error);
 	if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
 		m_socket->write(sendData);
 		m_socket->flush();

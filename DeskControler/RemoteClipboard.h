@@ -2,24 +2,31 @@
 #define REMOTECLIPBOARD_H
 
 #include <QObject>
-#include <QEvent>
-#include <QMimeData>
+#include <windows.h>
 #include "rendezvous.pb.h"
+
+Q_DECLARE_METATYPE(ClipboardEvent) 
 
 class RemoteClipboard : public QObject {
 	Q_OBJECT
 public:
 	explicit RemoteClipboard(QObject* parent = nullptr);
+	~RemoteClipboard();
 
-protected:
-	bool eventFilter(QObject* obj, QEvent* event) override;
+	bool start();
+	void stop();
+
+	void setRemoteWindow(QWidget* remoteWindow);
+signals:
+	void ctrlCPressed(const ClipboardEvent& clipboardEvent);
 
 private:
-	void sendClipboardData(const QMimeData* mimeData);
+	static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
+	LRESULT handleKeyEvent(int nCode, WPARAM wParam, LPARAM lParam);
 
-
-signals:
-	void clipboardDataReady(const ClipboardEvent& clipboardEvent);
+	static HHOOK s_hook;
+	static RemoteClipboard* s_instance;
+	QWidget* m_remoteWindow = nullptr;
 };
 
 #endif // REMOTECLIPBOARD_H

@@ -14,6 +14,7 @@ RelayManager::RelayManager(QObject* parent)
 	m_encoder(nullptr)
 {
 	m_inputSimulator = new RemoteInputSimulator(nullptr);
+	m_remoteClipboard = new RemoteClipboard(nullptr);
 }
 
 RelayManager::~RelayManager() {
@@ -134,6 +135,7 @@ void RelayManager::processReceivedData(const QByteArray& packetData) {
 		LogWidget::instance()->addLog("Failed to parse RendezvousMessage message from RelayManager", LogWidget::Warning);
 		return;
 	}
+	LogWidget::instance()->addLog("processReceivedData", LogWidget::Warning);
 	if (msg.has_inputcontrolevent()) {
 		const InputControlEvent& event = msg.inputcontrolevent();
 		if (event.has_mouse_event()) {
@@ -151,6 +153,15 @@ void RelayManager::processReceivedData(const QByteArray& packetData) {
 			QMetaObject::invokeMethod(m_inputSimulator, "handleKeyboardEvent", Qt::QueuedConnection,
 				Q_ARG(int, key), Q_ARG(bool, pressed));
 		}
+	}
+	else if (msg.has_clipboardevent()) {
+
+		const ClipboardEvent& clipboardEvent = msg.clipboardevent();
+		QMetaObject::invokeMethod(m_remoteClipboard, "onClipboardMessageReceived", Qt::QueuedConnection,
+			Q_ARG(ClipboardEvent, clipboardEvent));
+	}
+	else {
+		LogWidget::instance()->addLog("Received unknown message type in RendezvousMessage", LogWidget::Warning);
 	}
 }
 
