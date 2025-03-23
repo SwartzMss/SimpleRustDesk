@@ -1,4 +1,6 @@
+#ifndef REMOTECLIPBOARD_H
 #define REMOTECLIPBOARD_H
+
 
 #include <QObject>
 #include <windows.h>
