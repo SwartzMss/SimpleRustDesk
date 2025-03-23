@@ -28,6 +28,7 @@ signals:
 	// 网络出错、断开等信号，可以通知主线程
 	void networkError(const QString& error);
 	void connectedToServer();
+	void onClipboardMessageReceived(const ClipboardEvent& clipboardEvent);
 
 private slots:
 	void onSocketConnected();
