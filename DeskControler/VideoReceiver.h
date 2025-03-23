@@ -26,6 +26,8 @@ signals:
 	void frameReady(const QImage& image);
 	// 可以把 NetworkWorker 的错误转发出去
 	void networkError(const QString& error);
+	void onClipboardMessageReceived(const ClipboardEvent& clipboardEvent);
+
 public slots:
 	void mouseEventCaptured(int x, int y, int mask);
 	void keyEventCaptured(int key, bool pressed);

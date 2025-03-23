@@ -23,4 +23,6 @@ signals:
 	// ÏûÏ¢½âÎö´íÎó
 	void parseError(const QString& error);
 
+	void onClipboardMessageReceived(const ClipboardEvent& clipboardEvent);
+	
 };
