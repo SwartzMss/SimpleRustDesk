@@ -49,7 +49,9 @@ void RelayManager::start(const QHostAddress& relayAddress, quint16 relayPort, co
 	connect(m_encoderThread, &QThread::started, m_encoder, &ScreenCaptureEncoder::startCapture);
 	connect(m_encoder, &ScreenCaptureEncoder::encodedPacketReady, this, &RelayManager::onEncodedPacketReady);
 	connect(m_encoderThread, &QThread::finished, m_encoder, &QObject::deleteLater);
+	connect(m_remoteClipboard, &RemoteClipboard::ctrlCPressed, this, &RelayManager::sendClipboardEvent);
 	m_encoderThread->start();
+	m_remoteClipboard->start();
 }
 
 void RelayManager::stop() {
@@ -71,6 +73,11 @@ void RelayManager::stop() {
 		m_encoderThread->wait();
 		m_encoderThread->deleteLater();
 		m_encoderThread = nullptr;
+	}
+	if (m_remoteClipboard) {
+		m_remoteClipboard->stop();
+		m_remoteClipboard->deleteLater();
+		m_remoteClipboard = nullptr;
 	}
 }
 
@@ -189,4 +196,27 @@ void RelayManager::onEncodedPacketReady(const QByteArray& packet) {
 	else {
 		LogWidget::instance()->addLog("RelayManager: Cannot forward packet, TCP connection not established", LogWidget::Warning);
 	}
+}
+
+void RelayManager::sendClipboardEvent(const ClipboardEvent& clipboardEvent)
+{
+	// 组装 ClipboardEvent 消息到 RendezvousMessage 中
+	RendezvousMessage msg;
+	*msg.mutable_clipboardevent() = clipboardEvent;
+
+	std::string serialized;
+	if (!msg.SerializeToString(&serialized)) {
+		LogWidget::instance()->addLog("Failed to serialize ClipboardEvent message", LogWidget::Error);
+		return;
+	}
+
+	QByteArray data(serialized.data(), static_cast<int>(serialized.size()));
+	quint32 packetSize = static_cast<quint32>(data.size());
+	quint32 bigEndianSize = qToBigEndian(packetSize);
+	QByteArray header(reinterpret_cast<const char*>(&bigEndianSize), sizeof(bigEndianSize));
+	QByteArray fullData;
+	fullData.append(header);
+	fullData.append(data);
+	QMetaObject::invokeMethod(m_socketWorker, "sendData", Qt::QueuedConnection,
+		Q_ARG(QByteArray, fullData));
 }

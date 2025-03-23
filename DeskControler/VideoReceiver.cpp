@@ -28,6 +28,10 @@ VideoReceiver::VideoReceiver(QObject* parent)
         m_decoderWorker, &VideoDecoderWorker::decodePacket,
         Qt::QueuedConnection);
 
+	connect(m_netWorker, &NetworkWorker::onClipboardMessageReceived,
+        this, &VideoReceiver::onClipboardMessageReceived,
+		Qt::QueuedConnection);
+
     // 解码完成后回到主线程
     connect(m_decoderWorker, &VideoDecoderWorker::frameDecoded,
         this, &VideoReceiver::onFrameDecoded,

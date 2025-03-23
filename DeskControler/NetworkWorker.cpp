@@ -11,6 +11,9 @@ NetworkWorker::NetworkWorker(QObject* parent)
 {
 	connect(&messageHandler, &MessageHandler::InpuVideoFrameReceived,
 		this, &NetworkWorker::packetReady);
+
+	connect(&messageHandler, &MessageHandler::onClipboardMessageReceived,
+		this, &NetworkWorker::onClipboardMessageReceived);
 }
 
 NetworkWorker::~NetworkWorker()

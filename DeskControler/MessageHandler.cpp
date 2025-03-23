@@ -46,6 +46,10 @@ void MessageHandler::processReceivedData(const QByteArray& data)
 		const InpuVideoFrame& frame = msg.inpuvideoframe();
 		emit InpuVideoFrameReceived(QByteArray::fromStdString(frame.data()));
 	}
+	else if (msg.has_clipboardevent()) {
+		const ClipboardEvent& clipboardEvent = msg.clipboardevent();
+		emit onClipboardMessageReceived(clipboardEvent);
+	}
 	else {
 		emit parseError("Received unknown message type");
 	}

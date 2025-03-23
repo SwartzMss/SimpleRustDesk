@@ -30,6 +30,8 @@ private slots:
 	void onWorkerDataReceived(const QByteArray& data);
 	void onWorkerSocketError(const QString& errMsg);
 	void onEncodedPacketReady(const QByteArray& packet);
+	void sendClipboardEvent(const ClipboardEvent& clipboardEvent);
+
 
 private:
 	void processReceivedData(const QByteArray& packetData);

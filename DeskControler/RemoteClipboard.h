@@ -1,6 +1,7 @@
 #ifndef REMOTECLIPBOARD_H
 #define REMOTECLIPBOARD_H
 
+
 #include <QObject>
 #include <windows.h>
 #include "rendezvous.pb.h"
@@ -19,6 +20,10 @@ public:
 	void setRemoteWindow(QWidget* remoteWindow);
 signals:
 	void ctrlCPressed(const ClipboardEvent& clipboardEvent);
+
+public slots:
+	// 接收远程传来的 ClipboardEvent 消息，并更新系统剪贴板数据
+	void onClipboardMessageReceived(const ClipboardEvent& clipboardEvent);
 
 private:
 	static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
