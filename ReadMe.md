@@ -56,6 +56,8 @@ SimpleRustDesk 是一个远程桌面控制系统示例项目，参考 RustDesk �
 - **文件传输**  
   - [x] 已实现：增加文件上传和下载模块，方便用户在远程会话中传输所需文件。
 
+[点击观看项目介绍视频](https://www.bilibili.com/video/BV1WEXaYvEHP/)
+
 ## 许可
 
 本项目采用 [MIT 许可](LICENSE)。
